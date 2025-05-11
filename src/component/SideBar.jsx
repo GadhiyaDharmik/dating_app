@@ -87,7 +87,10 @@ const Sidebar = () => {
 
       {/* Log Out Button */}
       <div className="mt-auto w-full px-4">
-        <button className="w-full flex items-center justify-center gap-2 py-2 mt-6 rounded-full bg-white text-red-500 font-semibold hover:bg-red-100 transition">
+        <button className="w-full flex items-center justify-center gap-2 py-2 mt-6 rounded-full bg-white text-red-500 font-semibold hover:bg-red-100 transition" onClick={() => {
+          navigate("/login") 
+          localStorage.clear()
+        }}>
           <LogOut size={16} />
           Log Out
         </button>

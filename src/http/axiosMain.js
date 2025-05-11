@@ -6,6 +6,7 @@ const axiosInspector = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // ✅ This allows sending cookies or auth credentials
 });
 
 // Request interceptor
