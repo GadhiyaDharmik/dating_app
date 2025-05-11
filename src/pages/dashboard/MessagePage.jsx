@@ -5,8 +5,8 @@ import Sidebar from '../../component/SideBar.jsx';
 import userImg from '../../assets/bgImage.png';
 import { Phone, Send } from 'lucide-react';
 
-const SOCKET_SERVER_URL = 'http://13.203.229.149:4444';
-const API_BASE_URL = 'http://13.203.229.149:4444';
+const SOCKET_SERVER_URL = '';
+const API_BASE_URL = '';
 
 const initialMessages = [
   {

@@ -34,7 +34,7 @@ function HomePage() {
     }
 
     axiosInspector
-      .get("http://13.203.229.149:4444/users/matches?start=0&limit=10")
+      .get("/users/matches?start=0&limit=10")
       .then((res) => {
         setProfiles(res.data.list || []); // Adjust based on actual structure
         setLoading(false);
