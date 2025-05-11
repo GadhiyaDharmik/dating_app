@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const axiosInspector = axios.create({
-  baseURL: "http://13.203.229.149:4444",
+  baseURL: "https://13.203.229.149:4444",
   headers: {
     "Content-Type": "application/json",
   },
