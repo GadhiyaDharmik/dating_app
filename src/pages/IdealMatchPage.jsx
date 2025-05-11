@@ -2,14 +2,17 @@ import React, { useState } from "react";
 import MainSignUp from "../component/MainSignUp";
 import secondBG from "../assets/secondBG.png";
 import { HeartHandshake, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 function IdealMatchPage() {
+  const navigate = useNavigate()
   return (
     <MainSignUp
       titleText=" "
       text="It will Display on your Profile and you will not able to change it later"
       hasButton={true}
       buttonText="Find Your Match"
+      onButtonClick={(() => navigate("/dashboard/home"))}
     >
       <IdealMatchComponent />
     </MainSignUp>
@@ -56,11 +59,10 @@ function IdealMatchComponent() {
                   key={match.value}
                   onClick={() => setSelectedMatch(match.value)}
                   className={`flex flex-col items-center gap-2 cursor-pointer px-6 py-4 rounded-xl transition-all duration-300 
-                  ${
-                    selectedMatch === match.value
+                  ${selectedMatch === match.value
                       ? "bg-pink-100 border-2 border-pink-400"
                       : "bg-white border border-gray-300"
-                  }`}
+                    }`}
                 >
                   {match.emoji}
                   <p className="text-sm font-medium text-gray-700">

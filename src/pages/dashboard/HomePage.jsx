@@ -12,8 +12,29 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const userData =
+      JSON.parse(localStorage.getItem("user_Data"));
+    const userId =
+      localStorage.getItem("userId")
+
+    if (!userData) {
+      axiosInspector
+        .get(`/users/${userId}/info`)
+        .then((res) => {
+          const user = res.data;
+          // setProfiles(res.data.list || []); // Adjust based on actual structure
+          // setLoading(false);
+          localStorage.setItem("user_Data", JSON.stringify({ ...user, token: localStorage.getItem("authToken") }));
+
+        })
+        .catch((err) => {
+          console.error("Failed to fetch profiles", err);
+          setLoading(false);
+        });
+    }
+
     axiosInspector
-      .get("http://13.203.229.149:4444/users/matches?start=0&limit=10&match_intent=LoveCommitment&is_verified=true")
+      .get("http://13.203.229.149:4444/users/matches?start=0&limit=10")
       .then((res) => {
         setProfiles(res.data.list || []); // Adjust based on actual structure
         setLoading(false);

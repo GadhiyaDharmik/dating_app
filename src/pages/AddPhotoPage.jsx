@@ -70,10 +70,10 @@ function AddPhotoComponent({ formRef }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem("authToken");
-    const userData = JSON.parse(localStorage.getItem("user_Data"));
+    const token = JSON.parse(localStorage.getItem("user_Data"))?.token || localStorage.getItem("authToken");
+    const userData = JSON.parse(localStorage.getItem("user_Data")) || localStorage.getItem("userId");
 
-    if (!token || !userData?.id) {
+    if (!token || !userData) {
       alert("Missing token or user ID.");
       return;
     }

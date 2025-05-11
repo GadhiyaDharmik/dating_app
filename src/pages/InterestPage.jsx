@@ -18,25 +18,10 @@ function InterestPage() {
   );
 }
 
-const interestGroups = {
-  Sports: ["Cricket", "Football", "Swimming"],
-  Entertainment: ["Comedy", "Movies", "Music"],
-  Wellness: ["Outdoors", "Fitness", "Meditation", "Health", "Weights"],
-  Life: ["Weddings", "Dating", "Grownuping", "Relationships", "Weights"],
-};
-
-const categoryIcons = {
-  Sports: <Gamepad2 size={18} className="text-blue-500 mr-1" />,
-  Entertainment: <Film size={18} className="text-pink-500 mr-1" />,
-  Wellness: <Dumbbell size={18} className="text-green-500 mr-1" />,
-  Life: <HeartHandshake size={18} className="text-purple-500 mr-1" />,
-};
-
 const maxSelection = 5;
 
 function InterestComponent({ formRef }) {
   const [selectedCategories, setSelectedCategories] = useState([]); // store category IDs
-  const [selectedInterests, setSelectedInterests] = useState([]); // for UI highlight
   const [allInterests, setAllInterests] = useState([]);
   const [feedback, setFeedback] = useState("");
   const navigate = useNavigate();
@@ -52,7 +37,6 @@ function InterestComponent({ formRef }) {
     setFeedback("");
 
     const interestId = category.id;
-    const parent = category.parent;
     const alreadySelected = selectedCategories.includes(interestId);
 
     if (alreadySelected) {

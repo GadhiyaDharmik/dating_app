@@ -6,14 +6,16 @@ const axiosInspector = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // ✅ This allows sending cookies or auth credentials
+  //   withCredentials: true, // ✅ This allows sending cookies or auth credentials
 });
 
 // Request interceptor
 // Request interceptor
 axiosInspector.interceptors.request.use(
   (config) => {
-    const token = JSON.parse(localStorage.getItem("user_Data"))?.token; // Or get from cookie, sessionStorage, etc.
+    const token =
+      JSON.parse(localStorage.getItem("user_Data"))?.token ||
+      localStorage.getItem("authToken"); // Or get from cookie, sessionStorage, etc.
 
     if (token) {
       //   config.headers.Authorization = `Bearer ${token}`;
