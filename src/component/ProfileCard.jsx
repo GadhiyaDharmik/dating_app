@@ -6,6 +6,7 @@ import blueheart from "../assets/blueheart.png";
 import goldenheart from "../assets/goldenheart.png";
 
 const ProfileCard = ({
+  id,
   name,
   age,
   distance,
@@ -13,6 +14,7 @@ const ProfileCard = ({
   occupation,
   rating,
   image,
+  onInteract
 }) => {
   return (
     <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-sm lg:max-w-xs xl:max-w-sm h-[22rem] rounded-2xl overflow-hidden shadow-lg mx-auto">
@@ -52,7 +54,10 @@ const ProfileCard = ({
             className="w-full h-full object-contain"
           />
         </button>
-        <button className="bg-sky-400 h-10 w-10 sm:h-11 sm:w-11 p-1.5 rounded-full shadow-md hover:bg-red-100 border-white border-2">
+        <button
+          className="bg-sky-400 h-10 w-10 sm:h-11 sm:w-11 p-1.5 rounded-full shadow-md hover:bg-red-100 border-white border-2"
+          onClick={() => onInteract(id, "like")} // 🔥 use callback
+        >
           <img
             src={heart}
             alt="heart"

@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
+import React, { useState, useEffect, useRef } from 'react';
 import axiosMain from '../../http/axiosMain.js';
 import Sidebar from '../../component/SideBar.jsx';
 import userImg from '../../assets/bgImage.png';
 import { Phone, Send } from 'lucide-react';
+import axiosInspector from '../../http/axiosMain.js';
 
-const SOCKET_SERVER_URL = '';
-const API_BASE_URL = '';
+const WS_BASE_URL = 'ws://13.203.229.149:4444/ws/chat'; // Use wss:// if over HTTPS
 
 const initialMessages = [
   {
@@ -47,8 +46,9 @@ function MessageList({ messages, selectedId, setSelectedId }) {
           <div
             key={msg.id}
             onClick={() => setSelectedId(msg.id)}
-            className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${selectedId === msg.id ? 'bg-blue-50' : ''
-              } hover:bg-gray-100`}
+            className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${
+              selectedId === msg.id ? 'bg-blue-50' : ''
+            } hover:bg-gray-100`}
           >
             <img src={msg.avatar} alt={msg.name} className="w-10 h-10 rounded-full" />
             <div className="flex-1">
@@ -102,8 +102,9 @@ function ChatWindow({ contact, loading, onSend }) {
         {contact.chat.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`px-4 py-2 rounded-2xl max-w-xs ${msg.fromMe ? 'bg-blue-100 text-blue-900' : 'bg-gray-100 text-gray-900'
-                }`}
+              className={`px-4 py-2 rounded-2xl max-w-xs ${
+                msg.fromMe ? 'bg-blue-100 text-blue-900' : 'bg-gray-100 text-gray-900'
+              }`}
             >
               {msg.text}
             </div>
@@ -143,51 +144,32 @@ function ChatWindow({ contact, loading, onSend }) {
 
 function MessagePage() {
   const [messages, setMessages] = useState(initialMessages);
-  const [selectedId, setSelectedId] = useState(initialMessages[0]?.id || null);
+  const [selectedId, setSelectedId] = useState(null);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [socket, setSocket] = useState(null);
+  const wsRef = useRef(null);
   const currentUser = JSON.parse(localStorage.getItem("user_Data")) || { id: "<USER_ID>" };
-  const token = localStorage.getItem("token");
 
-  // Setup socket connection
+  // Cleanup WebSocket on unmount
   useEffect(() => {
-    const newSocket = io(SOCKET_SERVER_URL, {
-      query: { userId: currentUser.id },
-      transports: ['websocket'],
+    axiosInspector
+    .get("/users/matches?start=0&limit=10")
+    .then((res) => {
+      setMessages(res.data.list || []); // Adjust based on actual structure
+      setLoading(false);
+    })
+    .catch((err) => {
+      console.error("Failed to fetch profiles", err);
+      setLoading(false);
     });
-    setSocket(newSocket);
-
     return () => {
-      newSocket.disconnect();
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
     };
   }, []);
 
-  // Incoming messages
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on('receive_message', ({ senderId, text }) => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === senderId
-            ? {
-              ...msg,
-              chat: [...msg.chat, { fromMe: false, text }],
-              lastMessage: text,
-              unread: true,
-            }
-            : msg
-        )
-      );
-    });
-
-    return () => {
-      socket.off('receive_message');
-    };
-  }, [socket]);
-
-  // Fetch chat and create room
+  // Fetch room and open WebSocket connection
   useEffect(() => {
     if (!selectedId) return;
 
@@ -196,11 +178,40 @@ function MessagePage() {
       setSelectedMessage(null);
 
       try {
-        const response = await axiosMain.post(
-          `${API_BASE_URL}/chatrooms?target_user_id=${selectedId}`,
-        );
-
+        const response = await axiosMain.post(`/chatrooms?target_user_id=${selectedId}`);
         const roomData = response.data;
+        const ws = new WebSocket(`${WS_BASE_URL}/${roomData.id}`);
+
+        ws.onopen = () => {
+          console.log('Connected to WebSocket room:', roomData.id);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const payload = JSON.parse(event.data);
+            const { message, from } = payload;
+
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === from
+                  ? {
+                      ...msg,
+                      chat: [...msg.chat, { fromMe: false, text: message }],
+                      lastMessage: message,
+                      unread: true,
+                    }
+                  : msg
+              )
+            );
+          } catch (err) {
+            console.error('Error parsing WebSocket message:', err);
+          }
+        };
+
+        ws.onerror = (err) => console.error('WebSocket error:', err);
+        ws.onclose = () => console.log('WebSocket disconnected');
+
+        wsRef.current = ws;
 
         const contact = messages.find((msg) => msg.id === selectedId);
         if (contact) {
@@ -209,27 +220,30 @@ function MessagePage() {
             roomId: roomData.id,
           });
         }
-      } catch (error) {
-        console.error('Error creating chat room:', error);
+      } catch (err) {
+        console.error('Failed to fetch chat room:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchChatRoom();
-  }, [selectedId, messages, token]);
+  }, [selectedId, messages]);
 
-  // Send message
+  // Send message through WebSocket
   const handleSend = (text) => {
-    if (!selectedMessage || !socket || !selectedMessage.roomId) return;
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN || !selectedMessage?.roomId)
+      return;
 
-    const newMessage = {
-      roomId: selectedMessage.roomId,
+    const payload = {
       to: selectedMessage.id,
-      text,
+      message: text,
+      file: null,
+      file_path: null,
+      message_type: "Msg",
     };
 
-    socket.emit('send_message', newMessage);
+    wsRef.current.send(JSON.stringify(payload));
 
     const updatedChat = [...selectedMessage.chat, { fromMe: true, text }];
     const updatedContact = {
@@ -248,16 +262,8 @@ function MessagePage() {
   return (
     <div className="flex bg-gray-100 min-h-screen">
       <Sidebar />
-      <MessageList
-        messages={messages}
-        selectedId={selectedId}
-        setSelectedId={setSelectedId}
-      />
-      <ChatWindow
-        contact={selectedMessage}
-        loading={loading}
-        onSend={handleSend}
-      />
+      <MessageList messages={messages} selectedId={selectedId} setSelectedId={setSelectedId} />
+      <ChatWindow contact={selectedMessage} loading={loading} onSend={handleSend} />
     </div>
   );
 }

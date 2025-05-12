@@ -71,7 +71,7 @@ function AddPhotoComponent({ formRef }) {
     e.preventDefault();
 
     const token = JSON.parse(localStorage.getItem("user_Data"))?.token || localStorage.getItem("authToken");
-    const userData = JSON.parse(localStorage.getItem("user_Data")) || localStorage.getItem("userId");
+    const userData = JSON.parse(localStorage.getItem("user_Data"))?.id || localStorage.getItem("userId");
 
     if (!token || !userData) {
       alert("Missing token or user ID.");
@@ -87,7 +87,7 @@ function AddPhotoComponent({ formRef }) {
 
     try {
       const res = await axiosMain.post(
-        `/users/${userData.id}/gallary`,
+        `/users/${userData}/gallary`,
         formData,
         {
           headers: {
