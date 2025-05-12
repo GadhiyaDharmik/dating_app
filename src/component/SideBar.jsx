@@ -35,6 +35,10 @@ const Sidebar = () => {
   const [active, setActive] = useState(0);
   const navigate = useNavigate()
 
+  const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
+  const userName = userData.name || "Guest User";
+  const userEmail = userData.email || "guest@example.com";
+  const profileImg = userData.profile_picture || userImg; // fallback to default image
   return (
     <div className="h-screen w-72 bg-[#00A3E0] text-white flex flex-col items-center py-6 shadow-lg rounded-r-2xl">
       {/* Logo */}
@@ -44,13 +48,13 @@ const Sidebar = () => {
       <div className="flex flex-col items-center mb-8">
         <div className="relative">
           <img
-            src={userImg}
+            src={profileImg}
             alt="Profile"
             className="w-20 h-20 rounded-full border-4 border-white shadow-md"
           />
         </div>
-        <h2 className="mt-3 font-semibold text-lg">Michael Dam</h2>
-        <p className="text-sm opacity-90">michaeldam@loveai.com</p>
+        <h2 className="mt-3 font-semibold text-lg">{userName}</h2>
+        <p className="text-sm opacity-90">{userEmail}</p>
       </div>
 
       {/* Nav Items */}
@@ -100,3 +104,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
