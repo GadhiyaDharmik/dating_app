@@ -2,11 +2,12 @@
 import axios from "axios";
 
 const axiosInspector = axios.create({
-  baseURL: "https://13.203.229.149:4444",
+  baseURL: "http://13.203.229.149:4444",
   headers: {
     "Content-Type": "application/json",
+    
   },
-  //   withCredentials: true, // ✅ This allows sending cookies or auth credentials
+    // withCredentials: true, // ✅ This allows sending cookies or auth credentials
 });
 
 // Request interceptor
