@@ -88,8 +88,8 @@ function ChatWindow({ contact, loading, onSend }) {
               )}
               <div
                 className={`px-4 py-2 rounded-2xl max-w-xs ${isFromMe
-                    ? "bg-blue-100 text-blue-900"
-                    : "bg-gray-100 text-gray-900"
+                  ? "bg-blue-100 text-blue-900"
+                  : "bg-gray-100 text-gray-900"
                   }`}
               >
                 {msg.text}
@@ -177,47 +177,47 @@ export default function MessagePage() {
     setSelectedMessage(null);
 
     // Connect WebSocket
-    const ws = new WebSocket(`${WS_BASE_URL}/${selectedId}?token=${token}`);
-    wsRef.current = ws;
+    // const ws = new WebSocket(`${WS_BASE_URL}/${selectedId}?token=${token}`);
+    // wsRef.current = ws;
 
-    ws.onopen = () => {
-      console.log("WebSocket connected");
-    };
+    // ws.onopen = () => {
+    //   console.log("WebSocket connected");
+    // };
 
-    ws.onmessage = (event) => {
-      try {
-        const { message, from, sender_id } = JSON.parse(event.data);
-        const isFromMe = sender_id === userId;
+    // ws.onmessage = (event) => {
+    //   try {
+    //     const { message, from, sender_id } = JSON.parse(event.data);
+    //     const isFromMe = sender_id === userId;
 
-        setMessages((prev) =>
-          prev.map((msg) => {
-            if (msg.chat_room_id === from) {
-              const updatedChat = [
-                ...(msg.chat || []),
-                { fromMe: isFromMe, text: message },
-              ];
-              const updated = {
-                ...msg,
-                chat: updatedChat,
-                lastMessage: message,
-              };
+    //     setMessages((prev) =>
+    //       prev.map((msg) => {
+    //         if (msg.chat_room_id === from) {
+    //           const updatedChat = [
+    //             ...(msg.chat || []),
+    //             { fromMe: isFromMe, text: message },
+    //           ];
+    //           const updated = {
+    //             ...msg,
+    //             chat: updatedChat,
+    //             lastMessage: message,
+    //           };
 
-              if (from === selectedId) {
-                setSelectedMessage(updated);
-              }
+    //           if (from === selectedId) {
+    //             setSelectedMessage(updated);
+    //           }
 
-              return updated;
-            }
-            return msg;
-          })
-        );
-      } catch (err) {
-        console.error("WebSocket message parse error:", err);
-      }
-    };
+    //           return updated;
+    //         }
+    //         return msg;
+    //       })
+    //     );
+    //   } catch (err) {
+    //     console.error("WebSocket message parse error:", err);
+    //   }
+    // };
 
-    ws.onerror = (err) => console.error("WebSocket error:", err);
-    ws.onclose = () => console.log("WebSocket closed");
+    // ws.onerror = (err) => console.error("WebSocket error:", err);
+    // ws.onclose = () => console.log("WebSocket closed");
 
     // 🔹 Fetch Chat History from `/chatrooms/{room_id}/chats`
     axiosInspector
@@ -250,9 +250,9 @@ export default function MessagePage() {
         setLoading(false);
       });
 
-    return () => {
-      ws.close();
-    };
+    // return () => {
+    //   ws.close();
+    // };
   }, [selectedId]);
 
   const handleSend = (text) => {
