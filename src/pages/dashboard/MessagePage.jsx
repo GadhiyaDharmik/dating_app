@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axiosMain from '../../http/axiosMain.js';
 import Sidebar from '../../component/SideBar.jsx';
 import userImg from '../../assets/bgImage.png';
 import { Phone, Send } from 'lucide-react';
@@ -44,20 +43,19 @@ function MessageList({ messages, selectedId, setSelectedId }) {
       <div className="flex-1 overflow-y-auto">
         {messages.map((msg) => (
           <div
-            key={msg.id}
-            onClick={() => setSelectedId(msg.id)}
-            className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${
-              selectedId === msg.id ? 'bg-blue-50' : ''
-            } hover:bg-gray-100`}
+            key={msg?.chat_room_id}
+            onClick={() => setSelectedId(msg?.chat_room_id)}
+            className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${selectedId === msg.id ? 'bg-blue-50' : ''
+              } hover:bg-gray-100`}
           >
-            <img src={msg.avatar} alt={msg.name} className="w-10 h-10 rounded-full" />
+            <img src={msg?.user?.avatar} alt={msg?.user?.name} className="w-10 h-10 rounded-full" />
             <div className="flex-1">
-              <div className="font-medium">{msg.name}</div>
-              <div className="text-sm text-gray-500 truncate">{msg.lastMessage}</div>
+              <div className="font-medium">{msg?.user?.name}</div>
+              <div className="text-sm text-gray-500 truncate">{msg.user?.lastMessage}</div>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-xs text-gray-400">{msg.time}</span>
-              {msg.unread && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1"></span>}
+              <span className="text-xs text-gray-400">{msg?.user?.time}</span>
+              {msg?.user?.unread && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1"></span>}
             </div>
           </div>
         ))}
@@ -102,9 +100,8 @@ function ChatWindow({ contact, loading, onSend }) {
         {contact.chat.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`px-4 py-2 rounded-2xl max-w-xs ${
-                msg.fromMe ? 'bg-blue-100 text-blue-900' : 'bg-gray-100 text-gray-900'
-              }`}
+              className={`px-4 py-2 rounded-2xl max-w-xs ${msg.fromMe ? 'bg-blue-100 text-blue-900' : 'bg-gray-100 text-gray-900'
+                }`}
             >
               {msg.text}
             </div>
@@ -152,16 +149,15 @@ function MessagePage() {
 
   // Cleanup WebSocket on unmount
   useEffect(() => {
-    axiosInspector
-    .get("/users/matches?start=0&limit=10")
-    .then((res) => {
-      setMessages(res.data.list || []); // Adjust based on actual structure
-      setLoading(false);
-    })
-    .catch((err) => {
-      console.error("Failed to fetch profiles", err);
-      setLoading(false);
-    });
+    axiosInspector.get(`/chatrooms`)
+      .then((res) => {
+        setMessages(res.data.list || []); // Adjust based on actual structure
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch profiles", err);
+        setLoading(false);
+      });
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
@@ -172,18 +168,19 @@ function MessagePage() {
   // Fetch room and open WebSocket connection
   useEffect(() => {
     if (!selectedId) return;
-
+    console.log(selectedId)
     const fetchChatRoom = async () => {
       setLoading(true);
       setSelectedMessage(null);
 
       try {
-        const response = await axiosMain.post(`/chatrooms?target_user_id=${selectedId}`);
-        const roomData = response.data;
-        const ws = new WebSocket(`${WS_BASE_URL}/${roomData.id}`);
+        // const response = await axiosMain.post(`/chatrooms?target_user_id=${selectedId}`);
+        // const response = await axiosInspector.get(`/chatrooms`);
+        // const roomData = response.data;
+        const ws = new WebSocket(`${WS_BASE_URL}/${selectedId}`);
 
         ws.onopen = () => {
-          console.log('Connected to WebSocket room:', roomData.id);
+          console.log('Connected to WebSocket room:', selectedId);
         };
 
         ws.onmessage = (event) => {
@@ -195,11 +192,11 @@ function MessagePage() {
               prev.map((msg) =>
                 msg.id === from
                   ? {
-                      ...msg,
-                      chat: [...msg.chat, { fromMe: false, text: message }],
-                      lastMessage: message,
-                      unread: true,
-                    }
+                    ...msg,
+                    chat: [...msg.chat, { fromMe: false, text: message }],
+                    lastMessage: message,
+                    unread: true,
+                  }
                   : msg
               )
             );
@@ -217,7 +214,7 @@ function MessagePage() {
         if (contact) {
           setSelectedMessage({
             ...contact,
-            roomId: roomData.id,
+            roomId: selectedId,
           });
         }
       } catch (err) {
