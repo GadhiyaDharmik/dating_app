@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Home,
   Heart,
@@ -12,15 +12,20 @@ import {
   Globe,
   Info,
   LogOut,
+  Power,
 } from "lucide-react";
-import logo from "../assets/logoFull.png"; // your logo
-import userImg from "../assets/bgImage.png"; // your profile image
+import logo from "../assets/logoFull.png";
+import userImg from "../assets/bgImage.png";
 import { useNavigate } from "react-router-dom";
 
 const navItems = [
-  { label: "Home", icon: <Home size={18} /> },
+  { label: "Home", icon: <Home size={18} />, navigate: "/dashboard/home" },
   { label: "Matches", icon: <Heart size={18} /> },
-  { label: "Messages", icon: <MessageCircle size={18} />, navigate: "/dashboard/messages" },
+  {
+    label: "Messages",
+    icon: <MessageCircle size={18} />,
+    navigate: "/dashboard/messages",
+  },
   { label: "Personal Information", icon: <User size={18} /> },
   { label: "Privacy & Permission", icon: <Lock size={18} /> },
   { label: "Notification", icon: <Bell size={18} /> },
@@ -33,12 +38,28 @@ const navItems = [
 
 const Sidebar = () => {
   const [active, setActive] = useState(0);
-  const navigate = useNavigate()
+  const [isActivated, setIsActivated] = useState(true); // ✅ toggle status
+  const navigate = useNavigate();
 
   const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
   const userName = userData.name || "Guest User";
   const userEmail = userData.email || "guest@example.com";
-  const profileImg = userData.profile_picture || userImg; // fallback to default image
+  const profileImg = userData.profile_picture || userImg;
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const savedStatus = localStorage.getItem("isActivated");
+    if (savedStatus !== null) {
+      setIsActivated(savedStatus === "true");
+    }
+  }, []);
+
+  const toggleActivation = () => {
+    const newStatus = !isActivated;
+    setIsActivated(newStatus);
+    localStorage.setItem("isActivated", String(newStatus));
+  };
+
   return (
     <div className="h-screen w-72 bg-[#00A3E0] text-white flex flex-col items-center py-6 shadow-lg rounded-r-2xl">
       {/* Logo */}
@@ -46,55 +67,56 @@ const Sidebar = () => {
 
       {/* Profile Section */}
       <div className="flex flex-col items-center mb-8">
-        <div className="relative">
-          <img
-            src={profileImg}
-            alt="Profile"
-            className="w-20 h-20 rounded-full border-4 border-white shadow-md"
-          />
-        </div>
+        <img
+          src={profileImg}
+          alt="Profile"
+          className="w-20 h-20 rounded-full border-4 border-white shadow-md"
+        />
         <h2 className="mt-3 font-semibold text-lg">{userName}</h2>
         <p className="text-sm opacity-90">{userEmail}</p>
+
+        {/* ✅ Activation Toggle */}
+        <button
+          onClick={toggleActivation}
+          className={`mt-3 px-4 py-1 rounded-full text-sm font-medium flex items-center gap-2 ${
+            isActivated
+              ? "bg-green-200 text-green-800"
+              : "bg-red-200 text-red-800"
+          }`}
+        >
+          <Power size={16} />
+          {isActivated ? "Activated" : "Inactivated"}
+        </button>
       </div>
 
-      {/* Nav Items */}
+      {/* Navigation Items */}
       <div className="flex flex-col w-full">
         {navItems.map((item, index) => (
           <div
-            className={`${active === index
-              ? "bg-black/5  rounded-l-2xl"
-              : "text-white/90 "
-              }
-          ${active - 1 === index ? "bg-black/5 " : ""}
-          ${active + 1 === index ? "bg-black/5 " : ""}`}
-            onClick={() => navigate("/dashboard/messages")}
+            key={index}
+            className={`cursor-pointer px-4 py-2 flex items-center gap-3 ${
+              active === index ? "bg-black/10" : "hover:bg-white/10"
+            }`}
+            onClick={() => {
+              setActive(index);
+              if (item.navigate) navigate(item.navigate);
+            }}
           >
-            <div
-              key={item.label}
-              onClick={() => setActive(index)}
-              className={`group flex items-center gap-3 px-4 py-2 cursor-pointer transition-all duration-300 relative overflow-hidden pl-10 shadow-none
-              ${active === index
-                  ? "rounded-l-2xl"
-                  : "bg-[#00A3E0] text-white/90"
-                }
-              ${active - 1 === index ? "bg-[#00A3E0] rounded-br-4xl" : ""}
-              ${active + 1 === index ? "bg-[#00A3E0] rounded-tr-4xl" : ""}
-              
-                `}
-            >
-              <span className="z-10">{item.icon}</span>
-              <span className="z-10 text-sm font-medium">{item.label}</span>
-            </div>
+            <span>{item.icon}</span>
+            <span className="text-sm font-medium">{item.label}</span>
           </div>
         ))}
       </div>
 
-      {/* Log Out Button */}
+      {/* Logout Button */}
       <div className="mt-auto w-full px-4">
-        <button className="w-full flex items-center justify-center gap-2 py-2 mt-6 rounded-full bg-white text-red-500 font-semibold hover:bg-red-100 transition" onClick={() => {
-          navigate("/login") 
-          localStorage.clear()
-        }}>
+        <button
+          className="w-full flex items-center justify-center gap-2 py-2 mt-6 rounded-full bg-white text-red-500 font-semibold hover:bg-red-100 transition"
+          onClick={() => {
+            localStorage.clear();
+            navigate("/login");
+          }}
+        >
           <LogOut size={16} />
           Log Out
         </button>
@@ -104,4 +126,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-

@@ -68,7 +68,6 @@ function HomePage() {
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
-      <Sidebar />
       <div className="flex flex-col w-full gap-4">
         <StarRatingBar />
         <SearchFilterBar />

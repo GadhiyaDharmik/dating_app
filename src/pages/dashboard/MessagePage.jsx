@@ -4,7 +4,7 @@ import userImg from '../../assets/bgImage.png';
 import { Phone, Send } from 'lucide-react';
 import axiosInspector from '../../http/axiosMain.js';
 
-const WS_BASE_URL = 'ws://13.203.229.149:4444/ws/chat'; // Use wss:// if over HTTPS
+const WS_BASE_URL = 'ws://13.201.224.164:4444/ws/chat'; // Use wss:// if over HTTPS
 
 const initialMessages = [
   {
@@ -258,7 +258,7 @@ function MessagePage() {
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
-      <Sidebar />
+      {/* <Sidebar /> */}
       <MessageList messages={messages} selectedId={selectedId} setSelectedId={setSelectedId} />
       <ChatWindow contact={selectedMessage} loading={loading} onSend={handleSend} />
     </div>
