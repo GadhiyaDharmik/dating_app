@@ -4,14 +4,17 @@ import secondBG from "../assets/secondBG.png";
 import friendshipIcon from "../assets/friendshipIcon.png";
 import relationshipIcon from "../assets/relationshipIcon.png";
 import { HeartHandshake, Users } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 
 function IdealMatchPage() {
+  const navigate = useNavigate()
   return (
     <MainSignUp
       titleText=" "
       text="It will display on your profile and you will not be able to change it later"
       hasButton={true}
       buttonText="Find Your Match"
+      onButtonClick={() => navigate("/dashboard/home")}
     >
       <IdealMatchComponent />
     </MainSignUp>
