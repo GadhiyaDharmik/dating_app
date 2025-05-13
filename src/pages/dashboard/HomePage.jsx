@@ -70,7 +70,7 @@ function HomePage() {
     <div className="flex bg-gray-100 min-h-screen">
       <div className="flex flex-col w-full gap-4">
         <StarRatingBar />
-        <SearchFilterBar />
+        <SearchFilterBar profiles={profiles} setProfiles={setProfiles} setLoading={setLoading} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pl-10 pt-4">
           {loading ? (

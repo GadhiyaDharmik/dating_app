@@ -1,21 +1,24 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import MainSignUp from "../component/MainSignUp";
 import { useNavigate } from "react-router-dom";
 import axiosMain from "../http/axiosMain"; // ← your axios instance
 
 function SignUpForm() {
+  const formRef = useRef()
   return (
     <MainSignUp
       titleText="Can You elaborate on your identity?"
       text="It will Display on your Profile and you will not able to change it later"
       hasButton={true}
+      onButtonClick={() => formRef.current?.requestSubmit()}
+
     >
-      <SignUpFormComponent />
+      <SignUpFormComponent formRef={formRef} />
     </MainSignUp>
   );
 }
 
-function SignUpFormComponent() {
+function SignUpFormComponent({ formRef }) {
   const navigate = useNavigate();
 
   // form state
@@ -62,6 +65,7 @@ function SignUpFormComponent() {
     <form
       className="space-y-5 w-full text-sm"
       onSubmit={handleSubmit}
+      ref={formRef}
     >
       <h2 className="text-xl font-semibold text-gray-800 mb-2">
         Fill Your Profile
@@ -148,24 +152,22 @@ function SignUpFormComponent() {
       </div>
 
       {/* Save Button */}
-      <button
+      {/* <button
         type="submit"
         disabled={loading}
-        className={`w-full py-2 text-white font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] hover:opacity-90 transition ${
-          loading ? "opacity-50 cursor-not-allowed" : ""
-        }`}
+        className={`w-full py-2 text-white font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] hover:opacity-90 transition ${loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
       >
         {loading ? "Saving…" : "Save Profile"}
-      </button>
+      </button> */}
 
       {/* Feedback */}
       {feedback && (
         <p
-          className={`mt-4 text-center text-sm ${
-            feedback.startsWith("✅")
+          className={`mt-4 text-center text-sm ${feedback.startsWith("✅")
               ? "text-green-600"
               : "text-red-600"
-          }`}
+            }`}
         >
           {feedback}
         </p>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Home,
   Heart,
@@ -38,7 +38,7 @@ const navItems = [
 
 const Sidebar = () => {
   const [active, setActive] = useState(0);
-  const [isActivated, setIsActivated] = useState(true); // ✅ toggle status
+  // const [isActivated, setIsActivated] = useState(true); // ✅ toggle status
   const navigate = useNavigate();
 
   const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
@@ -47,18 +47,12 @@ const Sidebar = () => {
   const profileImg = userData.profile_picture || userImg;
 
   // Load from localStorage on mount
-  useEffect(() => {
-    const savedStatus = localStorage.getItem("isActivated");
-    if (savedStatus !== null) {
-      setIsActivated(savedStatus === "true");
-    }
-  }, []);
-
-  const toggleActivation = () => {
-    const newStatus = !isActivated;
-    setIsActivated(newStatus);
-    localStorage.setItem("isActivated", String(newStatus));
-  };
+  // useEffect(() => {
+  //   const savedStatus = localStorage.getItem("isActivated");
+  //   if (savedStatus !== null) {
+  //     setIsActivated(savedStatus === "true");
+  //   }
+  // }, []);
 
   return (
     <div className="h-screen w-72 bg-[#00A3E0] text-white flex flex-col items-center py-6 shadow-lg rounded-r-2xl">
@@ -74,19 +68,6 @@ const Sidebar = () => {
         />
         <h2 className="mt-3 font-semibold text-lg">{userName}</h2>
         <p className="text-sm opacity-90">{userEmail}</p>
-
-        {/* ✅ Activation Toggle */}
-        <button
-          onClick={toggleActivation}
-          className={`mt-3 px-4 py-1 rounded-full text-sm font-medium flex items-center gap-2 ${
-            isActivated
-              ? "bg-green-200 text-green-800"
-              : "bg-red-200 text-red-800"
-          }`}
-        >
-          <Power size={16} />
-          {isActivated ? "Activated" : "Inactivated"}
-        </button>
       </div>
 
       {/* Navigation Items */}
@@ -94,9 +75,8 @@ const Sidebar = () => {
         {navItems.map((item, index) => (
           <div
             key={index}
-            className={`cursor-pointer px-4 py-2 flex items-center gap-3 ${
-              active === index ? "bg-black/10" : "hover:bg-white/10"
-            }`}
+            className={`cursor-pointer px-4 py-2 flex items-center gap-3 ${active === index ? "bg-black/10" : "hover:bg-white/10"
+              }`}
             onClick={() => {
               setActive(index);
               if (item.navigate) navigate(item.navigate);
