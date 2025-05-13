@@ -39,6 +39,7 @@ function MessageList({ messages, selectedId, setSelectedId }) {
 
 function ChatWindow({ contact, loading, onSend }) {
   const [input, setInput] = useState("");
+  const currentUserId = JSON.parse(localStorage.getItem("user_Data"))?.id;
 
   if (loading || !contact) {
     return (
@@ -50,6 +51,7 @@ function ChatWindow({ contact, loading, onSend }) {
 
   return (
     <div className="flex-1 flex flex-col bg-white">
+      {/* Header */}
       <div className="flex items-center gap-3 border-b border-gray-200 px-6 py-4">
         <img
           src={contact?.user?.url || userImg}
@@ -64,35 +66,43 @@ function ChatWindow({ contact, loading, onSend }) {
         <Phone size={20} className="text-blue-500" />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-        {contact.chat.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`flex items-end gap-2 ${
-              msg.fromMe ? "justify-end" : "justify-start"
-            }`}
-          >
-            {/* Avatar for incoming message */}
-            {!msg.fromMe && (
-              <img
-                src={contact?.user?.url || userImg}
-                alt="user"
-                className="w-8 h-8 rounded-full"
-              />
-            )}
+      {/* Message list */}
+      <div
+        className="flex-1 px-6 py-4 space-y-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+        style={{ maxHeight: "calc(100vh - 140px)" }} // adjust if needed
+      >
+        {contact.chat.map((msg, idx) => {
+          const isFromMe = msg.fromMe ?? msg.sender?.id === currentUserId;
+          const avatarUrl = msg.sender?.url || userImg;
+          return (
             <div
-              className={`px-4 py-2 rounded-2xl max-w-xs ${
-                msg.fromMe
-                  ? "bg-blue-100 text-blue-900"
-                  : "bg-gray-100 text-gray-900"
+              key={idx}
+              className={`flex items-end gap-2 ${
+                isFromMe ? "justify-end" : "justify-start"
               }`}
             >
-              {msg.text}
+              {!isFromMe && (
+                <img
+                  src={avatarUrl}
+                  alt="sender"
+                  className="w-8 h-8 rounded-full"
+                />
+              )}
+              <div
+                className={`px-4 py-2 rounded-2xl max-w-xs ${
+                  isFromMe
+                    ? "bg-blue-100 text-blue-900"
+                    : "bg-gray-100 text-gray-900"
+                }`}
+              >
+                {msg.text}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
+      {/* Input */}
       <div className="border-t border-gray-200 px-6 py-4 flex items-center gap-3">
         <input
           type="text"
@@ -157,19 +167,19 @@ export default function MessagePage() {
 
         if (formatted.length > 0) {
           setSelectedId(formatted[0].chat_room_id);
-          setSelectedMessage(formatted[0]);
+          // setSelectedMessage(formatted[0]);
         }
       })
       .catch((err) => console.error("Failed to fetch chatrooms:", err));
   }, []);
 
-  // Setup WebSocket + listen for incoming messages
   useEffect(() => {
     if (!selectedId || !token) return;
 
     setLoading(true);
     setSelectedMessage(null);
 
+    // Connect WebSocket
     const ws = new WebSocket(`${WS_BASE_URL}/${selectedId}?token=${token}`);
     wsRef.current = ws;
 
@@ -212,7 +222,36 @@ export default function MessagePage() {
     ws.onerror = (err) => console.error("WebSocket error:", err);
     ws.onclose = () => console.log("WebSocket closed");
 
-    setLoading(false);
+    // 🔹 Fetch Chat History from `/chatrooms/{room_id}/chats`
+    axiosInspector
+      .get(`/chatrooms/${selectedId}/chats`, {
+        params: { start: 0, limit: 60 },
+        headers: { token },
+      })
+      .then((res) => {
+        const chatMessages = res.data.list.map((msg) => ({
+          text: msg.message,
+          fromMe: msg.sender.id === userId,
+        }));
+
+        const room = messages.find((m) => m.chat_room_id === selectedId);
+        if (room) {
+          const updatedRoom = {
+            ...room,
+            chat: chatMessages,
+          };
+          setSelectedMessage(updatedRoom);
+          setMessages((prev) =>
+            prev.map((m) => (m.chat_room_id === selectedId ? updatedRoom : m))
+          );
+        }
+
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load chat history:", err);
+        setLoading(false);
+      });
 
     return () => {
       ws.close();
