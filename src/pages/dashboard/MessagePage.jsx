@@ -3,7 +3,7 @@ import userImg from "../../assets/bgImage.png";
 import { Phone, Send } from "lucide-react";
 import axiosInspector from "../../http/axiosMain.js";
 
-const WS_BASE_URL = "ws://13.201.224.164:4444/ws/chat";
+const WS_BASE_URL = "ws://https://loveai-api.vrajtechnosys.in/ws/chat";
 
 function MessageList({ messages, selectedId, setSelectedId }) {
   return (
@@ -16,9 +16,8 @@ function MessageList({ messages, selectedId, setSelectedId }) {
           <div
             key={msg.chat_room_id}
             onClick={() => setSelectedId(msg.chat_room_id)}
-            className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${
-              selectedId === msg.chat_room_id ? "bg-blue-50" : ""
-            } hover:bg-gray-100`}
+            className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${selectedId === msg.chat_room_id ? "bg-blue-50" : ""
+              } hover:bg-gray-100`}
           >
             <img
               src={msg?.user?.url || userImg}
@@ -77,9 +76,8 @@ function ChatWindow({ contact, loading, onSend }) {
           return (
             <div
               key={idx}
-              className={`flex items-end gap-2 ${
-                isFromMe ? "justify-end" : "justify-start"
-              }`}
+              className={`flex items-end gap-2 ${isFromMe ? "justify-end" : "justify-start"
+                }`}
             >
               {!isFromMe && (
                 <img
@@ -89,11 +87,10 @@ function ChatWindow({ contact, loading, onSend }) {
                 />
               )}
               <div
-                className={`px-4 py-2 rounded-2xl max-w-xs ${
-                  isFromMe
+                className={`px-4 py-2 rounded-2xl max-w-xs ${isFromMe
                     ? "bg-blue-100 text-blue-900"
                     : "bg-gray-100 text-gray-900"
-                }`}
+                  }`}
               >
                 {msg.text}
               </div>
@@ -155,11 +152,11 @@ export default function MessagePage() {
           lastMessage: room.last_message?.message || "",
           chat: room.last_message
             ? [
-                {
-                  text: room.last_message.message,
-                  fromMe: room.last_message.sender_id === userId,
-                },
-              ]
+              {
+                text: room.last_message.message,
+                fromMe: room.last_message.sender_id === userId,
+              },
+            ]
             : [],
         }));
 
