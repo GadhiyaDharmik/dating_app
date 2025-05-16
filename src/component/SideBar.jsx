@@ -42,7 +42,7 @@ const Sidebar = () => {
     <div className="h-screen w-72 bg-gradient-to-b from-[#00A3E0] to-[#00D4FF] text-white flex flex-col rounded-r-[30px] shadow-xl">
       {/* Logo */}
       <div className="flex flex-col items-center pt-6">
-        <img src={logo} alt="Logo" className="h-8 mb-6" />
+        <img src={logo} alt="Logo" className="mb-6" />
       </div>
 
       {/* Profile Section */}

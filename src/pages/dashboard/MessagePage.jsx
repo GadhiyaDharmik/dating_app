@@ -5,7 +5,7 @@ import axiosInspector from "../../http/axiosMain.js";
 
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/chat";
 
-function MessageList({ messages, selectedId, setSelectedId }) {
+function MessageList({ messages, selectedId, setSelectedId, setResiverDetail }) {
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b font-semibold text-lg">Messages</div>
@@ -13,7 +13,10 @@ function MessageList({ messages, selectedId, setSelectedId }) {
         {messages.map((msg) => (
           <div
             key={msg.chat_room_id}
-            onClick={() => setSelectedId(msg.chat_room_id)}
+            onClick={() => {
+              setResiverDetail(msg);
+              setSelectedId(msg.chat_room_id);
+            }}
             className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${
               selectedId === msg.chat_room_id ? "bg-blue-100" : ""
             } hover:bg-gray-100`}
@@ -37,7 +40,6 @@ function MessageList({ messages, selectedId, setSelectedId }) {
 
 function ChatWindow({ contact, loading, onSend }) {
   const [input, setInput] = useState("");
-  const currentUserId = JSON.parse(localStorage.getItem("user_Data"))?.id;
 
   if (loading || !contact) {
     return (
@@ -65,20 +67,17 @@ function ChatWindow({ contact, loading, onSend }) {
 
       <div className="flex-1 px-6 py-4 space-y-3 overflow-y-auto">
         {contact.chat.map((msg, idx) => {
-          const isFromMe = msg.fromMe;
           return (
             <div
               key={idx}
               className={`flex items-end gap-2 ${
-                isFromMe ? "justify-end" : "justify-start"
+                msg.fromMe ? "justify-end" : "justify-start"
               }`}
             >
-              {!isFromMe && (
-                <img src={userImg} className="w-8 h-8 rounded-full" />
-              )}
+              {!msg.fromMe && <img src={userImg} className="w-8 h-8 rounded-full" />}
               <div
                 className={`px-4 py-2 rounded-2xl max-w-xs ${
-                  isFromMe
+                  msg.fromMe
                     ? "bg-blue-100 text-blue-900"
                     : "bg-gray-100 text-gray-900"
                 }`}
@@ -99,7 +98,7 @@ function ChatWindow({ contact, loading, onSend }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && input.trim()) {
-              onSend(input);
+              onSend(input.trim());
               setInput("");
             }
           }}
@@ -108,7 +107,7 @@ function ChatWindow({ contact, loading, onSend }) {
           className="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white"
           onClick={() => {
             if (input.trim()) {
-              onSend(input);
+              onSend(input.trim());
               setInput("");
             }
           }}
@@ -123,14 +122,15 @@ function ChatWindow({ contact, loading, onSend }) {
 export default function MessagePage() {
   const [messages, setMessages] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [resiverDetail, setResiverDetail] = useState(null);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const wsRef = useRef(null);
 
-  const userData = JSON.parse(localStorage.getItem("user_Data"));
-  const token = userData?.token;
-  const userId = userData?.id;
+  const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
+  const { token, id: userId } = userData;
 
+  // 1️⃣ Fetch rooms
   useEffect(() => {
     axiosInspector
       .get("/chatrooms")
@@ -142,19 +142,22 @@ export default function MessagePage() {
           chat: [],
         }));
         setMessages(formatted);
-        if (formatted.length > 0) {
-          setSelectedId(formatted[0].chat_room_id);
+        if (formatted.length) {
+          // setSelectedId(formatted[0].chat_room_id);
+          setResiverDetail(formatted[0]);
         }
       })
-      .catch((err) => console.error("Failed to fetch chatrooms:", err));
+      .catch(console.error);
   }, []);
 
+  // 2️⃣ Load history + open WS whenever selectedId changes
   useEffect(() => {
     if (!selectedId || !token) return;
 
     setLoading(true);
     setSelectedMessage(null);
 
+    // load chat history
     axiosInspector
       .get(`/chatrooms/${selectedId}/chats?start=0&limit=60`, {
         headers: { token },
@@ -164,92 +167,72 @@ export default function MessagePage() {
           text: msg.message,
           fromMe: msg.sender.id === userId,
         }));
-
         const room = messages.find((m) => m.chat_room_id === selectedId);
-        if (room) {
-          const updatedRoom = {
-            ...room,
-            chat: chatMessages,
-          };
-          setSelectedMessage(updatedRoom);
-          setMessages((prev) =>
-            prev.map((m) => (m.chat_room_id === selectedId ? updatedRoom : m))
-          );
-        }
-        setLoading(false);
+        const updatedRoom = { ...room, chat: chatMessages };
+        setSelectedMessage(updatedRoom);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.chat_room_id === selectedId ? updatedRoom : m
+          )
+        );
       })
-      .catch((err) => {
-        console.error("Failed to load chat history:", err);
-        setLoading(false);
-      });
+      .catch(console.error)
+      .finally(() => setLoading(false));
 
-    const ws = new WebSocket(`${WS_BASE_URL}/${selectedId}?token=${token}`);
+    // teardown previous WS
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
+    // build & open new WS
+    const wsUrl = `${WS_BASE_URL}/${selectedId}?token=${token}`;
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-    ws.onopen = () => {
-      console.log("✅ WebSocket connected");
-    };
-
-    ws.onmessage = (event) => {
+    ws.onopen = () => console.log("✅ WS connected:", wsUrl);
+    ws.onmessage = (evt) => {
       try {
-        const { message, from, sender_id, created_at } = JSON.parse(event.data);
+        const { message, from: roomId, sender_id } = JSON.parse(evt.data);
         const isFromMe = sender_id === userId;
 
         setMessages((prev) =>
-          prev.map((msg) => {
-            if (msg.chat_room_id === from) {
-              const updatedChat = [
-                ...(msg.chat || []),
-                { text: message, fromMe: isFromMe },
-              ];
+          prev.map((room) => {
+            if (room.chat_room_id === roomId) {
+              const updatedChat = [...(room.chat || []), { text: message, fromMe: isFromMe }];
               const updated = {
-                ...msg,
+                ...room,
                 chat: updatedChat,
                 lastMessage: message,
               };
-
-              if (from === selectedId) {
+              if (roomId === selectedId) {
                 setSelectedMessage(updated);
               }
-
               return updated;
             }
-            return msg;
+            return room;
           })
         );
-      } catch (e) {
-        console.error("❌ Failed to parse WebSocket message:", e);
+      } catch (err) {
+        console.error("❌ WS parse failed:", err);
       }
     };
-
-    ws.onerror = (err) => {
-      console.error("❌ WebSocket error:", err);
-    };
-
-    ws.onclose = () => {
-      console.log("🔌 WebSocket closed");
-    };
+    ws.onerror = (err) => console.error("❌ WS error:", err);
+    ws.onclose = () => console.log("🔌 WS closed");
 
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
+      if (wsRef.current) wsRef.current.close();
     };
-  }, [selectedId]);
+  }, [selectedId, token, userId, messages]);
 
+  // 3️⃣ Send a message
   const handleSend = (text) => {
-    if (
-      !selectedMessage ||
-      !wsRef.current ||
-      wsRef.current.readyState !== WebSocket.OPEN
-    ) {
-      console.warn("WebSocket is not connected.");
-      return;
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return console.warn("WS not open");
     }
 
     const payload = {
-      to: selectedMessage.chat_room_id,
+      to: resiverDetail.user.id,
       message: text,
       file: null,
       file_path: null,
@@ -258,19 +241,18 @@ export default function MessagePage() {
 
     wsRef.current.send(JSON.stringify(payload));
 
-    const updatedChat = [...selectedMessage.chat, { fromMe: true, text }];
-    const updatedContact = {
+    // optimistic UI update
+    const updated = {
       ...selectedMessage,
-      chat: updatedChat,
+      chat: [...selectedMessage.chat, { text, fromMe: true }],
       lastMessage: text,
     };
-
     setMessages((prev) =>
-      prev.map((msg) =>
-        msg.chat_room_id === selectedMessage.chat_room_id ? updatedContact : msg
+      prev.map((m) =>
+        m.chat_room_id === selectedMessage.chat_room_id ? updated : m
       )
     );
-    setSelectedMessage(updatedContact);
+    setSelectedMessage(updated);
   };
 
   return (
@@ -279,6 +261,7 @@ export default function MessagePage() {
         messages={messages}
         selectedId={selectedId}
         setSelectedId={setSelectedId}
+        setResiverDetail={setResiverDetail}
       />
       <ChatWindow
         contact={selectedMessage}
