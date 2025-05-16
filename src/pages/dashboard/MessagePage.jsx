@@ -9,7 +9,7 @@ function MessageList({ messages, selectedId, setSelectedId, setResiverDetail }) 
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b font-semibold text-lg">Messages</div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto custom-scroll">
         {messages.map((msg) => (
           <div
             key={msg.chat_room_id}
@@ -40,6 +40,15 @@ function MessageList({ messages, selectedId, setSelectedId, setResiverDetail }) 
 
 function ChatWindow({ contact, loading, onSend }) {
   const [input, setInput] = useState("");
+  const currentUserId = JSON.parse(localStorage.getItem("user_Data"))?.id;
+  const containerRef = useRef(null);
+
+  // scroll to bottom on initial load and whenever chat changes
+  useEffect(() => {
+    if (!loading && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [contact?.chat, loading]);
 
   if (loading || !contact) {
     return (
@@ -65,19 +74,26 @@ function ChatWindow({ contact, loading, onSend }) {
         <Phone size={20} className="text-blue-500" />
       </div>
 
-      <div className="flex-1 px-6 py-4 space-y-3 overflow-y-auto">
+      {/* scrollable chat area with ref */}
+      <div
+        ref={containerRef}
+        className="flex-1 px-6 py-4 space-y-3 overflow-y-auto custom-scroll"
+      >
         {contact.chat.map((msg, idx) => {
+          const isFromMe = msg.fromMe;
           return (
             <div
               key={idx}
               className={`flex items-end gap-2 ${
-                msg.fromMe ? "justify-end" : "justify-start"
+                isFromMe ? "justify-end" : "justify-start"
               }`}
             >
-              {!msg.fromMe && <img src={userImg} className="w-8 h-8 rounded-full" />}
+              {!isFromMe && (
+                <img src={userImg} className="w-8 h-8 rounded-full" />
+              )}
               <div
                 className={`px-4 py-2 rounded-2xl max-w-xs ${
-                  msg.fromMe
+                  isFromMe
                     ? "bg-blue-100 text-blue-900"
                     : "bg-gray-100 text-gray-900"
                 }`}
@@ -98,7 +114,7 @@ function ChatWindow({ contact, loading, onSend }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && input.trim()) {
-              onSend(input.trim());
+              onSend(input);
               setInput("");
             }
           }}
@@ -107,7 +123,7 @@ function ChatWindow({ contact, loading, onSend }) {
           className="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white"
           onClick={() => {
             if (input.trim()) {
-              onSend(input.trim());
+              onSend(input);
               setInput("");
             }
           }}
@@ -127,10 +143,10 @@ export default function MessagePage() {
   const [loading, setLoading] = useState(false);
   const wsRef = useRef(null);
 
-  const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
-  const { token, id: userId } = userData;
+  const userData = JSON.parse(localStorage.getItem("user_Data"));
+  const token = userData?.token;
+  const userId = userData?.id;
 
-  // 1️⃣ Fetch rooms
   useEffect(() => {
     axiosInspector
       .get("/chatrooms")
@@ -143,21 +159,18 @@ export default function MessagePage() {
         }));
         setMessages(formatted);
         if (formatted.length) {
-          // setSelectedId(formatted[0].chat_room_id);
           setResiverDetail(formatted[0]);
+          setSelectedId(formatted[0].chat_room_id);
         }
       })
-      .catch(console.error);
+      .catch((err) => console.error("Failed to fetch chatrooms:", err));
   }, []);
 
-  // 2️⃣ Load history + open WS whenever selectedId changes
   useEffect(() => {
     if (!selectedId || !token) return;
-
     setLoading(true);
     setSelectedMessage(null);
 
-    // load chat history
     axiosInspector
       .get(`/chatrooms/${selectedId}/chats?start=0&limit=60`, {
         headers: { token },
@@ -168,95 +181,104 @@ export default function MessagePage() {
           fromMe: msg.sender.id === userId,
         }));
         const room = messages.find((m) => m.chat_room_id === selectedId);
-        const updatedRoom = { ...room, chat: chatMessages };
-        setSelectedMessage(updatedRoom);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.chat_room_id === selectedId ? updatedRoom : m
-          )
-        );
+        if (room) {
+          const updatedRoom = { ...room, chat: chatMessages };
+          setSelectedMessage(updatedRoom);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.chat_room_id === selectedId ? updatedRoom : m
+            )
+          );
+        }
+        setLoading(false);
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        console.error("Failed to load chat history:", err);
+        setLoading(false);
+      });
 
-    // teardown previous WS
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-
-    // build & open new WS
-    const wsUrl = `${WS_BASE_URL}/${selectedId}?token=${token}`;
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(
+      `${WS_BASE_URL}/${selectedId}?authorization=${token}`
+    );
     wsRef.current = ws;
 
-    ws.onopen = () => console.log("✅ WS connected:", wsUrl);
-    ws.onmessage = (evt) => {
+    ws.onopen = () => console.log("✅ WebSocket connected");
+    ws.onmessage = (event) => {
       try {
-        const { message, from: roomId, sender_id } = JSON.parse(evt.data);
+        const { message, from, sender_id } = JSON.parse(event.data);
         const isFromMe = sender_id === userId;
-
         setMessages((prev) =>
-          prev.map((room) => {
-            if (room.chat_room_id === roomId) {
-              const updatedChat = [...(room.chat || []), { text: message, fromMe: isFromMe }];
+          prev.map((m) => {
+            if (m.chat_room_id === from) {
+              const updatedChat = [
+                ...(m.chat || []),
+                { text: message, fromMe: isFromMe },
+              ];
               const updated = {
-                ...room,
+                ...m,
                 chat: updatedChat,
                 lastMessage: message,
               };
-              if (roomId === selectedId) {
-                setSelectedMessage(updated);
-              }
+              if (from === selectedId) setSelectedMessage(updated);
               return updated;
             }
-            return room;
+            return m;
           })
         );
-      } catch (err) {
-        console.error("❌ WS parse failed:", err);
+      } catch (e) {
+        console.error("❌ Failed to parse WebSocket message:", e);
       }
     };
-    ws.onerror = (err) => console.error("❌ WS error:", err);
-    ws.onclose = () => console.log("🔌 WS closed");
+    ws.onerror = (err) => console.error("❌ WebSocket error:", err);
+    ws.onclose = () => console.log("🔌 WebSocket closed");
 
     return () => {
-      if (wsRef.current) wsRef.current.close();
+      wsRef.current?.close();
+      wsRef.current = null;
     };
-  }, [selectedId, token, userId, messages]);
+  }, [selectedId]);
 
-  // 3️⃣ Send a message
   const handleSend = (text) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      return console.warn("WS not open");
+    if (
+      !selectedMessage ||
+      !wsRef.current ||
+      wsRef.current.readyState !== WebSocket.OPEN
+    ) {
+      console.warn("WebSocket is not connected.");
+      return;
     }
 
     const payload = {
-      to: resiverDetail.user.id,
+      to: resiverDetail, // replace with actual receiver ID
       message: text,
       file: null,
       file_path: null,
       message_type: "Msg",
     };
-
     wsRef.current.send(JSON.stringify(payload));
 
-    // optimistic UI update
-    const updated = {
+    const updatedChat = [
+      ...selectedMessage.chat,
+      { fromMe: true, text },
+    ];
+    const updatedContact = {
       ...selectedMessage,
-      chat: [...selectedMessage.chat, { text, fromMe: true }],
+      chat: updatedChat,
       lastMessage: text,
     };
+
     setMessages((prev) =>
-      prev.map((m) =>
-        m.chat_room_id === selectedMessage.chat_room_id ? updated : m
+      prev.map((msg) =>
+        msg.chat_room_id === selectedMessage.chat_room_id
+          ? updatedContact
+          : msg
       )
     );
-    setSelectedMessage(updated);
+    setSelectedMessage(updatedContact);
   };
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
+    <div className="flex bg-gray-100 h-screen">
       <MessageList
         messages={messages}
         selectedId={selectedId}
