@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import MainSignUp from "../component/MainSignUp";
 import { useNavigate } from "react-router-dom";
-import axiosMain from "../http/axiosMain";  // ← your axios instance
+import axiosMain from "../http/axiosMain"; // ← your axios instance
 
 function LoginPage() {
   return (
@@ -15,8 +15,10 @@ function LoginPage() {
 }
 
 function LoginComponent() {
-  const naviagate = useNavigate();
-  const [identifier, setIdentifier] = useState(""); // email / phone / username
+  const navigate = useNavigate();
+  const [emailOrUsername, setEmailOrUsername] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -25,19 +27,27 @@ function LoginComponent() {
     e.preventDefault();
     setFeedback("");
 
-    if (!identifier.trim() || !password) {
-      setFeedback("Please enter both your email/phone and password.");
+    if (!password.trim()) {
+      setFeedback("Please enter your password.");
       return;
     }
 
-    // build payload...
     const payload = { password };
-    if (identifier.includes("@")) payload.email = identifier.trim();
-    else if (/^\d+$/.test(identifier.trim())) {
-      payload.country_code = "91";
-      payload.number = identifier.trim();
+
+    if (mobile.trim()) {
+      payload.country_code = countryCode
+      payload.number = mobile.trim();
+    } else if (emailOrUsername.trim()) {
+      const value = emailOrUsername.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(value)) {
+        payload.email = value;
+      } else {
+        payload.username = value;
+      }
     } else {
-      payload.username = identifier.trim();
+      setFeedback("Please enter either mobile number or email/username.");
+      return;
     }
 
     try {
@@ -45,29 +55,20 @@ function LoginComponent() {
       const res = await axiosMain.post("/login", payload);
       const user = res.data;
 
-      // store token
       localStorage.setItem("authToken", user.token);
+      localStorage.setItem("user_Data", JSON.stringify(user));
 
-      // check for any missing profile fields
       const required = ["dob", "email", "gender", "name", "username"];
-      const needsProfile = required.some((field) => {
-        const val = user[field];
-        return val === null || val === undefined || val === "";
-      });
+      const needsProfile = required.some((field) => !user[field]);
 
-      // route accordingly
       if (needsProfile) {
-        naviagate("/profile/data");
+        navigate("/profile/data");
       } else {
-        naviagate("/dashboard/home");
-        localStorage.setItem("user_Data", JSON.stringify(user));
-
+        navigate("/dashboard/home");
       }
     } catch (err) {
       console.error(err);
-      setFeedback(
-        err.response?.data?.message || "Login failed. Please try again."
-      );
+      setFeedback(err.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -75,23 +76,57 @@ function LoginComponent() {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-4 rounded-xl">
-      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
-        Login
-      </h2>
-      <div className="text-center mb-5">Email or Phone Number</div>
+      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Login</h2>
+
+      <p className="text-sm text-gray-500 mb-4 text-center">
+        You can login using either your mobile number or your email address.
+      </p>
 
       <form onSubmit={handleSubmit}>
-        {/* Email or Phone */}
+        {/* Mobile Number Input */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Phone or Email
+          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+            Mobile Number
+          </label>
+          <div className="flex items-center border border-blue-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-400 overflow-hidden">
+            <select
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="bg-white border-r px-2 py-2 text-sm outline-none text-gray-700"
+            >
+              <option value="+91">+91</option>
+              <option value="+1">+1</option>
+              <option value="+44">+44</option>
+              <option value="+972">+972</option>
+            </select>
+            <input
+              type="tel"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              placeholder="Enter your Mobile Number"
+              className="flex-1 px-3 py-2 outline-none text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center my-4">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="px-2 text-gray-400 text-sm">Or</span>
+          <div className="flex-grow border-t border-gray-300"></div>
+        </div>
+
+        {/* Email / Username Input */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+            Email
           </label>
           <input
             type="text"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="Enter your phone or email"
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={emailOrUsername}
+            onChange={(e) => setEmailOrUsername(e.target.value)}
+            placeholder="Enter your email address"
+            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
 
@@ -109,43 +144,10 @@ function LoginComponent() {
           />
         </div>
 
-        {/* error message */}
+        {/* Error Message */}
         {feedback && (
           <p className="text-red-600 text-sm mb-4 text-center">{feedback}</p>
         )}
-
-        {/* OR Divider */}
-        <div className="flex items-center justify-between my-4">
-          <hr className="w-full border-gray-300" />
-          <span className="px-2 text-gray-500 text-sm">or</span>
-          <hr className="w-full border-gray-300" />
-        </div>
-
-        {/* Social Buttons */}
-        <div className="flex gap-4 mb-4">
-          <button
-            type="button"
-            className="w-1/2 flex items-center justify-center bg-white border border-gray-300 p-2 rounded-lg hover:bg-gray-100"
-          >
-            <img
-              src="https://www.svgrepo.com/show/355037/google.svg"
-              alt="Google"
-              className="w-5 h-5 mr-2"
-            />
-            Google
-          </button>
-          <button
-            type="button"
-            className="w-1/2 flex items-center justify-center bg-white border border-gray-300 p-2 rounded-lg hover:bg-gray-100"
-          >
-            <img
-              src="https://www.svgrepo.com/show/475647/facebook-color.svg"
-              alt="Facebook"
-              className="w-5 h-5 mr-2"
-            />
-            Facebook
-          </button>
-        </div>
 
         {/* Submit Button */}
         <button
@@ -163,14 +165,14 @@ function LoginComponent() {
         Don’t have an account?{" "}
         <span
           className="text-[#00A3E0] cursor-pointer"
-          onClick={() => naviagate("/signup")}
+          onClick={() => navigate("/signup")}
         >
           Sign Up
         </span>
       </div>
       <div
         className="text-[#00A3E0] text-center text-sm cursor-pointer mt-1"
-        onClick={() => naviagate("/forgot-password")}
+        onClick={() => navigate("/forgot-password")}
       >
         Forgot your password? Reset it here.
       </div>

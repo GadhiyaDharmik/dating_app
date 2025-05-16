@@ -6,38 +6,54 @@ import { useNavigate } from "react-router-dom";
 
 function AddPhotoPage() {
   const formRef = useRef();
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const [isLoding, setIsLoding] = useState(false)
+
   return (
     <MainSignUp
       titleText="You can add up to 10 photos or skip and add later"
       text="It will Display on your Profile and you will not be able to change it later"
       hasButton={true}
       hasSkip={true}
-      onSkipClick={() => navigate("/profile/ideal-match")
-      }
-
+      onSkipClick={() => navigate("/profile/ideal-match")}
       onButtonClick={() => formRef.current?.requestSubmit()}
+      buttonText={isLoding ? "Loading..." : "NEXT"}
     >
-      <AddPhotoComponent formRef={formRef} />
+      <AddPhotoComponent formRef={formRef} setIsLoding={setIsLoding} />
     </MainSignUp>
   );
 }
 
-function AddPhotoComponent({ formRef }) {
+function AddPhotoComponent({ formRef, setIsLoding }) {
   const [photos, setPhotos] = useState([]);
   const fileInputRef = useRef(null);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const maxPhotos = 10;
 
   const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file && photos.length < maxPhotos) {
+    const files = Array.from(e.target.files || []);
+    const remainingSlots = maxPhotos - photos.length;
+
+    if (files.length > remainingSlots) {
+      alert(`You can only upload ${remainingSlots} more photo(s).`);
+    }
+
+    const filesToAdd = files.slice(0, remainingSlots);
+
+    filesToAdd.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhotos((prev) => [...prev, { id: Date.now(), url: reader.result, file }]);
+        setPhotos((prev) => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            url: reader.result,
+            file,
+          },
+        ]);
       };
       reader.readAsDataURL(file);
-    }
+    });
   };
 
   const handleAddPhoto = () => {
@@ -54,7 +70,9 @@ function AddPhotoComponent({ formRef }) {
         const reader = new FileReader();
         reader.onloadend = () => {
           setPhotos((prev) =>
-            prev.map((p) => (p.id === id ? { ...p, url: reader.result, file } : p))
+            prev.map((p) =>
+              p.id === id ? { ...p, url: reader.result, file } : p
+            )
           );
         };
         reader.readAsDataURL(file);
@@ -69,9 +87,13 @@ function AddPhotoComponent({ formRef }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const token = JSON.parse(localStorage.getItem("user_Data"))?.token || localStorage.getItem("authToken");
-    const userData = JSON.parse(localStorage.getItem("user_Data"))?.id || localStorage.getItem("userId");
+    setIsLoding(true)
+    const token =
+      JSON.parse(localStorage.getItem("user_Data"))?.token ||
+      localStorage.getItem("authToken");
+    const userData =
+      JSON.parse(localStorage.getItem("user_Data"))?.id ||
+      localStorage.getItem("userId");
 
     if (!token || !userData) {
       alert("Missing token or user ID.");
@@ -97,8 +119,10 @@ function AddPhotoComponent({ formRef }) {
         }
       );
       console.log("✅ Upload Success", res.data);
-      // alert("Photos uploaded successfully!");
-      navigate("/profile/ideal-match")
+      if (res.data) {
+        setIsLoding(true)
+      }
+      navigate("/profile/ideal-match");
     } catch (error) {
       console.error("❌ Upload Error", error);
       alert("Upload failed.");
@@ -122,6 +146,7 @@ function AddPhotoComponent({ formRef }) {
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple // ✅ Multiple selection
         onChange={handleFileChange}
         className="hidden"
       />
@@ -131,27 +156,28 @@ function AddPhotoComponent({ formRef }) {
           {photos.map((photo) => (
             <div
               key={photo.id}
-              className="relative rounded-xl overflow-hidden shadow group"
+              className="relative rounded-3xl overflow-hidden shadow-md group"
             >
               <img
                 src={photo.url}
                 alt="Uploaded"
-                className="w-full h-32 object-cover"
+                className="w-full h-40 object-cover"
               />
-              <div className="absolute top-1 right-1 flex gap-1">
+
+              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-md">
                 <button
                   type="button"
                   onClick={() => handleEditPhoto(photo.id)}
-                  className="bg-white p-1 rounded-full shadow hover:bg-gray-100"
+                  className="bg-pink-100 text-pink-600 p-2 rounded-full hover:bg-pink-200 transition-all"
                 >
-                  <Edit size={14} className="text-blue-600" />
+                  <Edit size={16} />
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDeletePhoto(photo.id)}
-                  className="bg-white p-1 rounded-full shadow hover:bg-gray-100"
+                  className="bg-pink-100 text-pink-600 p-2 rounded-full hover:bg-pink-200 transition-all"
                 >
-                  <Trash2 size={14} className="text-red-500" />
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>
@@ -167,18 +193,6 @@ function AddPhotoComponent({ formRef }) {
           )}
         </div>
       </div>
-
-      {/* Optional Submit Button (visible fallback if needed) */}
-      {/* {photos.length > 0 && (
-        <div className="mt-6">
-          <button
-            type="submit"
-            className="bg-blue-600 text-white py-2 px-6 rounded shadow hover:bg-blue-700 transition"
-          >
-            Upload All Photos
-          </button>
-        </div>
-      )} */}
     </form>
   );
 }

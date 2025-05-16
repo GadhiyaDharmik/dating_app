@@ -1,9 +1,6 @@
 import React, { useRef, useState } from "react";
-import bgImage from "../assets/bgImage.png";
-import bgCouplePhoto from "../assets/bgCouplePhoto.png";
-import logoFull from "../assets/logoFull.png";
 import MainSignUp from "../component/MainSignUp";
-import axiosMain from "../http/axiosMain"; // ← your axios instance
+import axiosMain from "../http/axiosMain";
 import { useNavigate } from "react-router-dom";
 
 function SignUp() {
@@ -15,9 +12,10 @@ function SignUp() {
 }
 
 function SignUpComponent() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const mobileRef = useRef(null);
   const emailRef = useRef(null);
+  const [countryCode, setCountryCode] = useState("+91");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
 
@@ -31,28 +29,24 @@ function SignUpComponent() {
       return;
     }
 
-    // build payload per your API schema
     const payload = number
-      ? { country_code: "91", number }      // defaulting to +91
+      ? { country_code: countryCode, number }
       : { email };
 
     try {
       setLoading(true);
       const res = await axiosMain.post("/send-otp", payload);
-      if (res.data.errors) {
 
+      if (res.data.errors) {
         setFeedback(res.data.errors?.at(0));
-      }
-      else {
+      } else {
         setFeedback("✅ OTP sent! Check your inbox/SMS.");
-        console.log(res, "res")
-        localStorage.setItem("userId", res.data)
-        navigate("/signup/verify")
+        localStorage.setItem("userId", res.data);
+        navigate("/signup/verify");
       }
     } catch (err) {
       setFeedback(
-        err.response?.data?.message ||
-        "❌ Something went wrong sending the OTP."
+        err.response?.data?.message || "❌ Something went wrong sending the OTP."
       );
     } finally {
       setLoading(false);
@@ -61,14 +55,11 @@ function SignUpComponent() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-        Sign Up
-      </h2>
+      <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Sign Up</h2>
       <h6 className="text-sm mb-6 text-gray-800 text-center">
         Enter your mobile number or email to get started.
       </h6>
 
-      {/* add onSubmit so “Enter” also works */}
       <form
         className="space-y-4"
         onSubmit={(e) => {
@@ -77,12 +68,24 @@ function SignUpComponent() {
         }}
       >
         <label className="text-sm">Mobile Number</label>
-        <input
-          type="text"
-          ref={mobileRef}
-          placeholder="Enter your mobile number"
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="flex items-center border border-blue-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-400 overflow-hidden">
+          <select
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            className="bg-white border-r px-2 py-2 text-sm outline-none text-gray-700"
+          >
+            <option value="+91">+91</option>
+            <option value="+1">+1</option>
+            <option value="+44">+44</option>
+            <option value="+972">+972</option>
+          </select>
+          <input
+            type="tel"
+            ref={mobileRef}
+            placeholder="Enter your mobile number"
+            className="flex-1 px-4 py-2 outline-none text-sm"
+          />
+        </div>
 
         <div className="flex items-center justify-between my-2">
           <hr className="w-full border-gray-300" />
@@ -90,7 +93,7 @@ function SignUpComponent() {
           <hr className="w-full border-gray-300" />
         </div>
 
-        <label className="text-sm ">Email</label>
+        <label className="text-sm">Email</label>
         <input
           type="text"
           ref={emailRef}
@@ -107,54 +110,57 @@ function SignUpComponent() {
         <div className="flex gap-5">
           <button
             type="button"
-            className="w-[50%] flex items-center justify-center bg-white border border-gray-300 p-2 rounded-lg hover:bg-gray-100"
+            className="w-1/2 flex items-center justify-center bg-white border border-gray-300 p-2 rounded-lg hover:bg-gray-100"
           >
             <img
               src="https://www.svgrepo.com/show/355037/google.svg"
               alt="Google"
               className="w-5 h-5 mr-2"
-            />{" "}
+            />
             Google
           </button>
 
           <button
             type="button"
-            className="w-[50%] flex items-center justify-center bg-white border border-gray-300 p-2 rounded-lg hover:bg-gray-100"
+            className="w-1/2 flex items-center justify-center bg-white border border-gray-300 p-2 rounded-lg hover:bg-gray-100"
           >
             <img
               src="https://www.svgrepo.com/show/475647/facebook-color.svg"
               alt="Facebook"
               className="w-5 h-5 mr-2"
-            />{" "}
+            />
             Facebook
           </button>
         </div>
 
-        {/* hook into your API call here */}
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 text-white mb-5 font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] ${loading ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
-            } transition`}
+          className={`w-full py-2 text-white mb-5 font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] ${
+            loading ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
+          } transition`}
         >
           {loading ? "Sending…" : "Sign Up"}
         </button>
       </form>
 
-      {/* feedback message */}
       {feedback && (
         <p
-          className={`mt-4 text-center text-sm ${feedback.startsWith("✅") ? "text-green-600" : "text-red-600"
-            }`}
+          className={`mt-4 text-center text-sm ${
+            feedback.startsWith("✅") ? "text-green-600" : "text-red-600"
+          }`}
         >
           {feedback}
         </p>
       )}
 
       <div className="text-center text-sm">
-        alredy have account <span className="text-[#00A3E0]" onClick={() => navigate("/login")}>Sign In</span>
+        Already have an account?{" "}
+        <span className="text-[#00A3E0] cursor-pointer" onClick={() => navigate("/login")}>
+          Sign In
+        </span>
       </div>
-      <div className="text-[#00A3E0] text-center text-sm">
+      <div className="text-[#00A3E0] text-center text-sm mt-1 cursor-pointer">
         Forgot your password? Reset it here.
       </div>
     </div>
