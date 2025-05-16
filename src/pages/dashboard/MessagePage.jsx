@@ -10,30 +10,28 @@ function MessageList({ messages, selectedId, setSelectedId, setResiverDetail }) 
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b font-semibold text-lg">Messages</div>
       <div className="flex-1 overflow-y-auto custom-scroll">
-        {messages
-          /* newest at top */
-          .map((msg) => (
-            <div
-              key={msg.chat_room_id}
-              onClick={() => {
-                setResiverDetail(msg);
-                setSelectedId(msg.chat_room_id);
-              }}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${selectedId === msg.chat_room_id ? "bg-blue-100" : ""
-                } hover:bg-gray-100`}
-            >
-              <img
-                src={msg.user?.url || userImg}
-                className="w-10 h-10 rounded-full"
-              />
-              <div className="flex-1">
-                <div className="font-medium">{msg.user?.name}</div>
-                <div className="text-sm text-gray-500 truncate">
-                  {msg.lastMessage}
-                </div>
+        {messages.map((msg) => (
+          <div
+            key={msg.chat_room_id}
+            onClick={() => {
+              setResiverDetail(msg);
+              setSelectedId(msg.chat_room_id);
+            }}
+            className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${selectedId === msg.chat_room_id ? "bg-blue-100" : ""
+              } hover:bg-gray-100`}
+          >
+            <img
+              src={msg.user?.url || userImg}
+              className="w-10 h-10 rounded-full"
+            />
+            <div className="flex-1">
+              <div className="font-medium">{msg.user?.name}</div>
+              <div className="text-sm text-gray-500 truncate">
+                {msg.lastMessage}
               </div>
             </div>
-          ))}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -41,9 +39,9 @@ function MessageList({ messages, selectedId, setSelectedId, setResiverDetail }) 
 
 function ChatWindow({ contact, loading, onSend }) {
   const [input, setInput] = useState("");
-  const currentUserId = JSON.parse(localStorage.getItem("user_Data"))?.id;
   const containerRef = useRef(null);
 
+  // auto-scroll to bottom on new messages
   useEffect(() => {
     if (!loading && containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -78,8 +76,9 @@ function ChatWindow({ contact, loading, onSend }) {
         ref={containerRef}
         className="flex-1 px-6 py-4 space-y-3 overflow-y-auto custom-scroll"
       >
-        {contact.chat?.slice()                // ← copy it
-          .reverse()?.map((msg, idx) => {
+        {[...contact.chat || []]?.reverse()?.slice()                // ← copy it
+          .reverse()
+          .map((msg, idx) => {
             const isFromMe = msg.fromMe;
             return (
               <div
@@ -145,7 +144,19 @@ export default function MessagePage() {
   const token = userData?.token;
   const userId = userData?.id;
 
-  // 1️⃣ Fetch chatrooms once
+  // Helper to fetch the last 60 messages for a room
+  const fetchLatestChats = async (roomId) => {
+    const res = await axiosInspector.get(
+      `/chatrooms/${roomId}/chats?start=0&limit=60`,
+      { headers: { token } }
+    );
+    return res.data.list.map((msg) => ({
+      text: msg.message,
+      fromMe: msg.sender.id === userId,
+    }));
+  };
+
+  // 1️⃣ Fetch chatrooms once on mount
   useEffect(() => {
     axiosInspector
       .get("/chatrooms")
@@ -165,43 +176,37 @@ export default function MessagePage() {
       .catch((err) => console.error("Failed to fetch chatrooms:", err));
   }, []);
 
-  // 2️⃣ When room or token changes, reload history & (re)connect WS
+  // 2️⃣ When selectedId changes, load history and open WebSocket
   useEffect(() => {
     if (!selectedId || !token) return;
-
     setLoading(true);
     setSelectedMessage(null);
 
-    // fetch last 60 messages
-    axiosInspector
-      .get(`/chatrooms/${selectedId}/chats?start=0&limit=60`, {
-        headers: { token },
-      })
-      .then((res) => {
-        const chatMessages = res.data.list.map((msg) => ({
-          text: msg.message,
-          fromMe: msg.sender.id === userId,
-        }));
-
-        setMessages((prevRooms) => {
-          const updatedRooms = prevRooms.map((r) =>
-            r.chat_room_id === selectedId ? { ...r, chat: chatMessages } : r
+    // initial history load
+    fetchLatestChats(selectedId)
+      .then((chatMessages) => {
+        setMessages((prev) => {
+          const updated = prev.map((room) =>
+            room.chat_room_id === selectedId
+              ? {
+                ...room,
+                chat: chatMessages,
+                lastMessage:
+                  chatMessages[chatMessages.length - 1]?.text || "",
+              }
+              : room
           );
-          const updated = updatedRooms.find(
+          const active = updated.find(
             (r) => r.chat_room_id === selectedId
           );
-          setSelectedMessage(updated);
-          return updatedRooms;
+          setSelectedMessage(active);
+          return updated;
         });
-
-        setLoading(false);
       })
-      .catch((err) => {
-        console.error("Failed to load chat history:", err);
-        setLoading(false);
-      });
+      .catch((err) => console.error("Failed to load chat history:", err))
+      .finally(() => setLoading(false));
 
-    // open WS with correct ?token=…
+    // open WebSocket
     const ws = new WebSocket(
       `${WS_BASE_URL}/${selectedId}?authorization=${token}`
     );
@@ -211,55 +216,85 @@ export default function MessagePage() {
       console.log("✅ WebSocket connected to room", selectedId);
 
     ws.onmessage = (event) => {
-      const data = event.data;
       let payload;
       try {
-        payload = JSON.parse(data);
+        payload = JSON.parse(event.data);
       } catch {
-        const [sender, ...rest] = data.split(":");
+        const [sender, ...rest] = event.data.split(":");
         payload = {
           from: sender,
           message: rest.join(":"),
           sender_id: sender,
         };
       }
-
-      const { from, message, sender_id } = payload;
-      const isFromMe = sender_id === userId;
-
-      setMessages((prevRooms) => {
-        return prevRooms.map((r) => {
-          if (r.chat_room_id !== from) return r;
-          const updated = {
-            ...r,
-            chat: [
-              ...(r.chat || []),
-              { text: message, fromMe: isFromMe },
-            ],
-            lastMessage: message,
+      const isFromMe = payload.sender_id === userId;
+      setMessages((prev) =>
+        prev.map((room) => {
+          if (room.chat_room_id !== payload.from) return room;
+          const updatedRoom = {
+            ...room,
+            chat: [...(room.chat || []), { text: payload.message, fromMe: isFromMe }],
+            lastMessage: payload.message,
           };
-          if (from === selectedId) {
-            setSelectedMessage(updated);
+          if (room.chat_room_id === selectedId) {
+            setSelectedMessage(updatedRoom);
           }
-          return updated;
-        });
-      });
+          return updatedRoom;
+        })
+      );
     };
 
     ws.onerror = (err) =>
       console.error("❌ WebSocket error for room", selectedId, err);
-
     ws.onclose = () =>
       console.log("🔌 WebSocket closed for room", selectedId);
 
     return () => {
-      console.log("🔄 Cleaning up WS for room", selectedId);
       ws.close();
       wsRef.current = null;
     };
   }, [selectedId, token]);
 
-  // send new message
+  // 3️⃣ Poll every 2s and only update if chat length changed
+  useEffect(() => {
+    if (!selectedId || !token) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const newChat = await fetchLatestChats(selectedId);
+        if (cancelled) return;
+        setMessages((prev) =>
+          prev.map((room) => {
+            if (room.chat_room_id !== selectedId) return room;
+            const oldChat = room.chat || [];
+            if (newChat.length !== oldChat.length) {
+              const updatedRoom = {
+                ...room,
+                chat: newChat,
+                lastMessage: newChat[newChat.length - 1]?.text || "",
+              };
+              setSelectedMessage(updatedRoom);
+              return updatedRoom;
+            }
+            return room;
+          })
+        );
+      } catch (e) {
+        console.error("Polling error:", e);
+      }
+    };
+
+    // immediate + interval
+    poll();
+    const handle = setInterval(poll, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(handle);
+    };
+  }, [selectedId, token]);
+
+  // send a new message via WS
   const handleSend = (text) => {
     if (
       !selectedMessage ||
@@ -269,7 +304,6 @@ export default function MessagePage() {
       console.warn("WebSocket is not connected.");
       return;
     }
-
     const payload = {
       to: resiverDetail?.user?.id,
       message: text,
@@ -279,25 +313,24 @@ export default function MessagePage() {
     };
     wsRef.current.send(JSON.stringify(payload));
 
-    // locally echo
+    // echo locally
     const updatedChat = [
-      ...selectedMessage.chat,
+      ...(selectedMessage.chat || []),
       { fromMe: true, text },
     ];
-    const updatedContact = {
+    const updatedRoom = {
       ...selectedMessage,
       chat: updatedChat,
       lastMessage: text,
     };
-
     setMessages((prev) =>
-      prev.map((msg) =>
-        msg.chat_room_id === selectedMessage.chat_room_id
-          ? updatedContact
-          : msg
+      prev.map((r) =>
+        r.chat_room_id === updatedRoom.chat_room_id
+          ? updatedRoom
+          : r
       )
     );
-    setSelectedMessage(updatedContact);
+    setSelectedMessage(updatedRoom);
   };
 
   return (
