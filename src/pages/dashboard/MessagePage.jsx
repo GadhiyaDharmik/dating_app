@@ -10,28 +10,32 @@ function MessageList({ messages, selectedId, setSelectedId, setResiverDetail }) 
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b font-semibold text-lg">Messages</div>
       <div className="flex-1 overflow-y-auto custom-scroll">
-        {messages.map((msg) => (
-          <div
-            key={msg.chat_room_id}
-            onClick={() => {
-              setResiverDetail(msg);
-              setSelectedId(msg.chat_room_id);
-            }}
-            className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${selectedId === msg.chat_room_id ? "bg-blue-100" : ""
+        {messages
+          .slice()   /* clone */
+          .reverse() /* newest at top */
+          .map((msg) => (
+            <div
+              key={msg.chat_room_id}
+              onClick={() => {
+                setResiverDetail(msg);
+                setSelectedId(msg.chat_room_id);
+              }}
+              className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${
+                selectedId === msg.chat_room_id ? "bg-blue-100" : ""
               } hover:bg-gray-100`}
-          >
-            <img
-              src={msg?.user?.url || userImg}
-              className="w-10 h-10 rounded-full"
-            />
-            <div className="flex-1">
-              <div className="font-medium">{msg?.user?.name}</div>
-              <div className="text-sm text-gray-500 truncate">
-                {msg?.lastMessage}
+            >
+              <img
+                src={msg.user?.url || userImg}
+                className="w-10 h-10 rounded-full"
+              />
+              <div className="flex-1">
+                <div className="font-medium">{msg.user?.name}</div>
+                <div className="text-sm text-gray-500 truncate">
+                  {msg.lastMessage}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );
@@ -42,7 +46,6 @@ function ChatWindow({ contact, loading, onSend }) {
   const currentUserId = JSON.parse(localStorage.getItem("user_Data"))?.id;
   const containerRef = useRef(null);
 
-  // scroll to bottom on initial load and whenever chat changes
   useEffect(() => {
     if (!loading && containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -61,19 +64,18 @@ function ChatWindow({ contact, loading, onSend }) {
     <div className="flex-1 flex flex-col bg-white">
       <div className="flex items-center gap-3 border-b px-6 py-4">
         <img
-          src={contact?.user?.url || userImg}
+          src={contact.user?.url || userImg}
           className="w-10 h-10 rounded-full"
         />
         <div className="flex-1">
-          <div className="font-semibold">{contact?.user?.name}</div>
+          <div className="font-semibold">{contact.user?.name}</div>
           <div className="text-xs text-green-500">
-            {contact?.user?.is_online ? "Online" : "Offline"}
+            {contact.user?.is_online ? "Online" : "Offline"}
           </div>
         </div>
         <Phone size={20} className="text-blue-500" />
       </div>
 
-      {/* scrollable chat area with ref */}
       <div
         ref={containerRef}
         className="flex-1 px-6 py-4 space-y-3 overflow-y-auto custom-scroll"
@@ -83,17 +85,19 @@ function ChatWindow({ contact, loading, onSend }) {
           return (
             <div
               key={idx}
-              className={`flex items-end gap-2 ${isFromMe ? "justify-end" : "justify-start"
-                }`}
+              className={`flex items-end gap-2 ${
+                isFromMe ? "justify-end" : "justify-start"
+              }`}
             >
               {!isFromMe && (
                 <img src={userImg} className="w-8 h-8 rounded-full" />
               )}
               <div
-                className={`px-4 py-2 rounded-2xl max-w-xs ${isFromMe
+                className={`px-4 py-2 rounded-2xl max-w-xs ${
+                  isFromMe
                     ? "bg-blue-100 text-blue-900"
                     : "bg-gray-100 text-gray-900"
-                  }`}
+                }`}
               >
                 {msg.text}
               </div>
@@ -144,6 +148,7 @@ export default function MessagePage() {
   const token = userData?.token;
   const userId = userData?.id;
 
+  // 1️⃣ Fetch chatrooms once
   useEffect(() => {
     axiosInspector
       .get("/chatrooms")
@@ -163,11 +168,14 @@ export default function MessagePage() {
       .catch((err) => console.error("Failed to fetch chatrooms:", err));
   }, []);
 
+  // 2️⃣ When room or token changes, reload history & (re)connect WS
   useEffect(() => {
     if (!selectedId || !token) return;
+
     setLoading(true);
     setSelectedMessage(null);
 
+    // fetch last 60 messages
     axiosInspector
       .get(`/chatrooms/${selectedId}/chats?start=0&limit=60`, {
         headers: { token },
@@ -177,16 +185,18 @@ export default function MessagePage() {
           text: msg.message,
           fromMe: msg.sender.id === userId,
         }));
-        const room = messages.find((m) => m.chat_room_id === selectedId);
-        if (room) {
-          const updatedRoom = { ...room, chat: chatMessages };
-          setSelectedMessage(updatedRoom);
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.chat_room_id === selectedId ? updatedRoom : m
-            )
+
+        setMessages((prevRooms) => {
+          const updatedRooms = prevRooms.map((r) =>
+            r.chat_room_id === selectedId ? { ...r, chat: chatMessages } : r
           );
-        }
+          const updated = updatedRooms.find(
+            (r) => r.chat_room_id === selectedId
+          );
+          setSelectedMessage(updated);
+          return updatedRooms;
+        });
+
         setLoading(false);
       })
       .catch((err) => {
@@ -194,47 +204,65 @@ export default function MessagePage() {
         setLoading(false);
       });
 
+    // open WS with correct ?token=…
     const ws = new WebSocket(
       `${WS_BASE_URL}/${selectedId}?authorization=${token}`
     );
     wsRef.current = ws;
 
-    ws.onopen = () => console.log("✅ WebSocket connected");
+    ws.onopen = () =>
+      console.log("✅ WebSocket connected to room", selectedId);
+
     ws.onmessage = (event) => {
+      const data = event.data;
+      let payload;
       try {
-        const { message, from, sender_id } = JSON.parse(event.data);
-        const isFromMe = sender_id === userId;
-        setMessages((prev) =>
-          prev.map((m) => {
-            if (m.chat_room_id === from) {
-              const updatedChat = [
-                ...(m.chat || []),
-                { text: message, fromMe: isFromMe },
-              ];
-              const updated = {
-                ...m,
-                chat: updatedChat,
-                lastMessage: message,
-              };
-              if (from === selectedId) setSelectedMessage(updated);
-              return updated;
-            }
-            return m;
-          })
-        );
-      } catch (e) {
-        console.error("❌ Failed to parse WebSocket message:", e);
+        payload = JSON.parse(data);
+      } catch {
+        const [sender, ...rest] = data.split(":");
+        payload = {
+          from: sender,
+          message: rest.join(":"),
+          sender_id: sender,
+        };
       }
+
+      const { from, message, sender_id } = payload;
+      const isFromMe = sender_id === userId;
+
+      setMessages((prevRooms) => {
+        return prevRooms.map((r) => {
+          if (r.chat_room_id !== from) return r;
+          const updated = {
+            ...r,
+            chat: [
+              ...(r.chat || []),
+              { text: message, fromMe: isFromMe },
+            ],
+            lastMessage: message,
+          };
+          if (from === selectedId) {
+            setSelectedMessage(updated);
+          }
+          return updated;
+        });
+      });
     };
-    ws.onerror = (err) => console.error("❌ WebSocket error:", err);
-    ws.onclose = () => console.log("🔌 WebSocket closed");
+
+    ws.onerror = (err) =>
+      console.error("❌ WebSocket error for room", selectedId, err);
+
+    ws.onclose = () =>
+      console.log("🔌 WebSocket closed for room", selectedId);
 
     return () => {
-      wsRef.current?.close();
+      console.log("🔄 Cleaning up WS for room", selectedId);
+      ws.close();
       wsRef.current = null;
     };
-  }, [selectedId]);
+  }, [selectedId, token]);
 
+  // send new message
   const handleSend = (text) => {
     if (
       !selectedMessage ||
@@ -246,7 +274,7 @@ export default function MessagePage() {
     }
 
     const payload = {
-      to: resiverDetail?.user?.id, // replace with actual receiver ID
+      to: resiverDetail?.user?.id,
       message: text,
       file: null,
       file_path: null,
@@ -254,6 +282,7 @@ export default function MessagePage() {
     };
     wsRef.current.send(JSON.stringify(payload));
 
+    // locally echo
     const updatedChat = [
       ...selectedMessage.chat,
       { fromMe: true, text },
