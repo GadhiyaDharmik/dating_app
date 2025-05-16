@@ -11,8 +11,7 @@ function MessageList({ messages, selectedId, setSelectedId, setResiverDetail }) 
       <div className="p-4 border-b font-semibold text-lg">Messages</div>
       <div className="flex-1 overflow-y-auto custom-scroll">
         {messages
-          .slice()   /* clone */
-          .reverse() /* newest at top */
+          /* newest at top */
           .map((msg) => (
             <div
               key={msg.chat_room_id}
@@ -20,9 +19,8 @@ function MessageList({ messages, selectedId, setSelectedId, setResiverDetail }) 
                 setResiverDetail(msg);
                 setSelectedId(msg.chat_room_id);
               }}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${
-                selectedId === msg.chat_room_id ? "bg-blue-100" : ""
-              } hover:bg-gray-100`}
+              className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${selectedId === msg.chat_room_id ? "bg-blue-100" : ""
+                } hover:bg-gray-100`}
             >
               <img
                 src={msg.user?.url || userImg}
@@ -80,30 +78,29 @@ function ChatWindow({ contact, loading, onSend }) {
         ref={containerRef}
         className="flex-1 px-6 py-4 space-y-3 overflow-y-auto custom-scroll"
       >
-        {contact.chat.map((msg, idx) => {
-          const isFromMe = msg.fromMe;
-          return (
-            <div
-              key={idx}
-              className={`flex items-end gap-2 ${
-                isFromMe ? "justify-end" : "justify-start"
-              }`}
-            >
-              {!isFromMe && (
-                <img src={userImg} className="w-8 h-8 rounded-full" />
-              )}
+        {contact.chat?.slice()                // ← copy it
+          .reverse()?.map((msg, idx) => {
+            const isFromMe = msg.fromMe;
+            return (
               <div
-                className={`px-4 py-2 rounded-2xl max-w-xs ${
-                  isFromMe
+                key={idx}
+                className={`flex items-end gap-2 ${isFromMe ? "justify-end" : "justify-start"
+                  }`}
+              >
+                {!isFromMe && (
+                  <img src={userImg} className="w-8 h-8 rounded-full" />
+                )}
+                <div
+                  className={`px-4 py-2 rounded-2xl max-w-xs ${isFromMe
                     ? "bg-blue-100 text-blue-900"
                     : "bg-gray-100 text-gray-900"
-                }`}
-              >
-                {msg.text}
+                    }`}
+                >
+                  {msg.text}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       <div className="border-t px-6 py-4 flex items-center gap-3">
