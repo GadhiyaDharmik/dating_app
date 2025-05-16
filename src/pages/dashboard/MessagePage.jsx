@@ -76,8 +76,7 @@ function ChatWindow({ contact, loading, onSend }) {
         ref={containerRef}
         className="flex-1 px-6 py-4 space-y-3 overflow-y-auto custom-scroll"
       >
-        {[...contact.chat || []]?.reverse()?.slice()                // ← copy it
-          .reverse()
+        {[...contact.chat || []]
           .map((msg, idx) => {
             const isFromMe = msg.fromMe;
             return (
@@ -153,7 +152,7 @@ export default function MessagePage() {
     return res.data.list.map((msg) => ({
       text: msg.message,
       fromMe: msg.sender.id === userId,
-    }));
+    }))?.reverse();
   };
 
   // 1️⃣ Fetch chatrooms once on mount
