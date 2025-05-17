@@ -38,8 +38,8 @@ const ProfileCard = ({
 
       {/* Verified Tick */}
       <div className="absolute top-2 right-2 z-20 tick-badge">
-  <img src={tick} alt="verified" className="w-4 h-4" />
-</div>
+        <img src={tick} alt="verified" className="w-4 h-4" />
+      </div>
 
 
 
@@ -57,7 +57,16 @@ const ProfileCard = ({
         <div className="flex flex-col items-center">
           <button
             className="heart-button h-12 w-12 p-2 rounded-full shadow-md border-2 border-white"
-            onClick={() => onInteract(id, "like")}
+            onClick={() => onInteract(id, "like", {
+              id,
+              name,
+              age,
+              distance,
+              interests,
+              occupation,
+              rating,
+              image,
+            })}
           >
             <img
               src={heart}
@@ -86,12 +95,10 @@ const ProfileCard = ({
         <p className="text-sm interest-user">
           <strong>Interests</strong>:
           {Array.isArray(interests)
-            ? ` ${interests.slice(0, 2).join(", ")}${
-                interests.length > 2 ? "..." : ""
-              }`
-            : ` ${interests.split(",").slice(0, 2).join(", ")}${
-                interests.split(",").length > 2 ? "..." : ""
-              }`}
+            ? ` ${interests.slice(0, 2).join(", ")}${interests.length > 2 ? "..." : ""
+            }`
+            : ` ${interests.split(",").slice(0, 2).join(", ")}${interests.split(",").length > 2 ? "..." : ""
+            }`}
         </p>
 
         <p className="text-sm interest-user">

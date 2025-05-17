@@ -12,22 +12,27 @@ function HomePage() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const handleInteract = (targetUserId, action) => {
+  const [matchModal, setMatchModal] = useState(null); // stores matched user data
+
+  const handleInteract = (targetUserId, action, data) => {
     axiosInspector
       .post("/users/interact", {
         target_user_id: targetUserId,
-        action: action, // "like"
+        action: action,
       })
-      .then(() => {
-        console.log(`Successfully sent '${action}' for user ${targetUserId}`);
-        // You can also update UI, show a toast, etc.
-        navigate("/dashboard/messages");
+      .then((res) => {
+        setProfiles((prev) => prev.filter((p) => p.id !== targetUserId));
+
+        if (res.data.is_match) {
+          setMatchModal(data); // trigger modal
+        }
       })
       .catch((err) => {
         console.error("Interaction failed:", err);
         alert("Interaction failed");
       });
   };
+
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user_Data"));
@@ -103,7 +108,63 @@ function HomePage() {
           )}
         </div>
       </div>
+      {matchModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-2xl text-center shadow-xl relative max-w-sm w-full">
+            {/* Heart and Images */}
+            <div className="flex justify-center gap-2 mb-4 relative">
+              <img
+                src={"https://via.placeholder.com/300"}
+                alt="You"
+                className="w-24 h-24 rounded-full border-4 border-blue-400 object-cover"
+              />
+              <img
+                src={matchModal.profile_picture || "https://via.placeholder.com/300"}
+                alt={matchModal.name || "N/A"}
+                className="w-24 h-24 rounded-full border-4 border-blue-400 object-cover"
+              />
+            </div>
+
+            <p className="text-xl font-semibold text-[#00A3E0] mb-2">
+              You and {matchModal.name || "N/A"} liked each other
+            </p>
+
+            <div className="flex justify-center gap-3 mt-6">
+              <button
+                className="bg-gradient-to-r from-blue-400 to-cyan-400 text-white px-6 py-2 rounded-full font-semibold"
+                onClick={() => {
+                  setMatchModal(null);
+                  navigate("/dashboard/messages");
+                }}
+              >
+                SAY HELLO!
+              </button>
+            </div>
+
+            <div className="mt-4 flex justify-center gap-6 text-sm font-medium">
+              <button
+                className="text-pink-600 underline"
+                onClick={() => {
+                  navigate(`/dashboard/profile/${matchModal.id}`);
+                  setMatchModal(null);
+                }}
+              >
+                VIEW PROFILE
+              </button>
+              <button
+                className="text-gray-600"
+                onClick={() => setMatchModal(null)}
+              >
+                MAYBE LATER
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
+
+
   );
 }
 
