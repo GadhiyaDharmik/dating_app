@@ -12,19 +12,26 @@ import IdealMatchPage from "../pages/IdealMatchPage";
 import MessagePage from "../pages/dashboard/MessagePage";
 import PersonalInfoPage from "../pages/dashboard/PersonalInfoPage";
 import HomePage from "../pages/dashboard/HomePage";
-import DashboardLayout from "../layouts/DashboardLayout"; // ✅ Import layout
+import DashboardLayout from "../layouts/DashboardLayout";
 import MatchesPage from "../pages/dashboard/MatchesPage";
+import PrivateRoute from "./PrivateRoute";
 
 function AppRoutes() {
   return (
     <Router>
       <Routes>
-        {/* Auth & Signup Routes */}
+        {/* Public Routes */}
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signup/verify" element={<VerificationPage />} />
-        <Route path="/signup/confirm-password" element={<ConfirmPasswordPage />} />
+        <Route
+          path="/signup/confirm-password"
+          element={<ConfirmPasswordPage />}
+        />
         <Route path="/profile/data" element={<ProfileDataPage />} />
-        <Route path="/profile/general-info" element={<GeneralInformationPage />} />
+        <Route
+          path="/profile/general-info"
+          element={<GeneralInformationPage />}
+        />
         <Route path="/profile/lifestyle" element={<LifestylePage />} />
         <Route path="/profile/interests" element={<InterestPage />} />
         <Route path="/profile/photos" element={<AddPhotoPage />} />
@@ -32,37 +39,45 @@ function AppRoutes() {
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Dashboard Routes with Sidebar */}
+        {/* Protected Routes */}
         <Route
           path="/dashboard/home"
           element={
-            <DashboardLayout>
-              <HomePage />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <HomePage />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
-         <Route
+        <Route
           path="/dashboard/matches"
           element={
-            <DashboardLayout>
-              <MatchesPage />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <MatchesPage />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
         <Route
           path="/dashboard/messages"
           element={
-            <DashboardLayout>
-              <MessagePage />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <MessagePage />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
         <Route
           path="/dashboard/personalInfo"
           element={
-            <DashboardLayout>
-              <PersonalInfoPage />
-            </DashboardLayout>
+            <PrivateRoute>
+              <DashboardLayout>
+                <PersonalInfoPage />
+              </DashboardLayout>
+            </PrivateRoute>
           }
         />
       </Routes>
