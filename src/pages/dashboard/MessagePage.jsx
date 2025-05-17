@@ -185,26 +185,60 @@ export default function MessagePage() {
       };
       ws.onmessage = (evt) => {
         log += "[Received] " + evt.data + "\n";
-        const parts = evt.data.split(":");
-        if (parts.length >= 2) {
-          const sender = parts.shift();
-          const message = parts.join(":");
-          const isMe = sender === String(userId);
 
+        try {
+          const data = JSON.parse(evt.data);
+          const { from, message, room_id, type, created_at } = data;
+          const isMe = from === String(userId);
+
+          // Update all rooms
           setRooms((prev) =>
             prev.map((r) =>
-              r.chat_room_id === roomId
+              r.chat_room_id === room_id
                 ? {
                   ...r,
-                  chat: [...r.chat, { message, isMe }],
+                  chat: [{ message, isMe, created_at, type }, ...r.chat],
                   lastMessage: message,
                 }
                 : r
             )
           );
-          setCurrentRoom((r) => ({ ...r, chat: r.chat, log }));
+
+          // Update current room if it matches
+          if (room_id === selectedId) {
+            setCurrentRoom((r) => ({
+              ...r, // retain user, log, etc.
+              chat: [{ message, isMe, created_at, type }, ...r.chat],
+              log,
+            }));
+          }
+        } catch (err) {
+          console.error("Failed to parse WebSocket message:", err);
         }
       };
+
+      // ws.onmessage = (evt) => {
+      //   log += "[Received] " + evt.data + "\n";
+      //   const parts = evt.data.split(":");
+      //   if (parts.length >= 2) {
+      //     const sender = parts.shift();
+      //     const message = parts.join(":");
+      //     const isMe = sender === String(userId);
+
+      //     setRooms((prev) =>
+      //       prev.map((r) =>
+      //         r.chat_room_id === roomId
+      //           ? {
+      //             ...r,
+      //             chat: [...r.chat, { message, isMe }],
+      //             lastMessage: message,
+      //           }
+      //           : r
+      //       )
+      //     );
+      //     setCurrentRoom((r) => ({ ...r, chat: r.chat, log }));
+      //   }
+      // };
       ws.onerror = (e) => {
         log += "[Error] " + e.message + "\n";
         setCurrentRoom((r) => ({ ...r, log }));
@@ -233,7 +267,7 @@ export default function MessagePage() {
       wsRef.current.send(JSON.stringify(payload));
       setCurrentRoom((r) => ({
         ...r,
-        chat: [...r.chat, { message: msg, isMe: true }],
+        chat: [{ message: msg, isMe: true }, ...r.chat],
       }));
     },
     []
