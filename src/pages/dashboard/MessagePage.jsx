@@ -209,7 +209,6 @@ export default function MessagePage() {
             setCurrentRoom((r) => ({
               ...r, // retain user, log, etc.
               chat: [{ message, isMe}, ...r.chat],
-              log,
             }));
           }
         } catch (err) {
@@ -217,28 +216,6 @@ export default function MessagePage() {
         }
       };
 
-      // ws.onmessage = (evt) => {
-      //   log += "[Received] " + evt.data + "\n";
-      //   const parts = evt.data.split(":");
-      //   if (parts.length >= 2) {
-      //     const sender = parts.shift();
-      //     const message = parts.join(":");
-      //     const isMe = sender === String(userId);
-
-      //     setRooms((prev) =>
-      //       prev.map((r) =>
-      //         r.chat_room_id === roomId
-      //           ? {
-      //             ...r,
-      //             chat: [...r.chat, { message, isMe }],
-      //             lastMessage: message,
-      //           }
-      //           : r
-      //       )
-      //     );
-      //     setCurrentRoom((r) => ({ ...r, chat: r.chat, log }));
-      //   }
-      // };
       ws.onerror = (e) => {
         log += "[Error] " + e.message + "\n";
         setCurrentRoom((r) => ({ ...r, log }));
