@@ -73,11 +73,11 @@ function ChatWindow({ room, loading, onSend }) {
       </div>
 
       {/* Messages */}
-      <textarea
+      {/* <textarea
         readOnly
         className="w-full h-32 p-2 bg-gray-100 text-sm mb-2"
         value={room.log || ""}
-      />
+      /> */}
 
       <div
         ref={containerRef}
@@ -208,7 +208,7 @@ export default function MessagePage() {
           if (room_id === selectedId) {
             setCurrentRoom((r) => ({
               ...r, // retain user, log, etc.
-              chat: [{ message, isMe, created_at, type }, ...r.chat],
+              chat: [{ message, isMe}, ...r.chat],
               log,
             }));
           }
