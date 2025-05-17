@@ -6,7 +6,12 @@ import { useState } from "react";
 
 export const GradientHeart = ({ filled }) => (
   <div className="relative w-10 h-10">
-    <svg width="40" height="40" viewBox="0 0 24 24" className="absolute inset-0">
+    <svg
+      width="40"
+      height="40"
+      viewBox="0 0 24 24"
+      className="absolute inset-0"
+    >
       <defs>
         <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#D8B65E" />
@@ -30,18 +35,27 @@ export const GradientHeart = ({ filled }) => (
 
 export const HeartRating = () => {
   const [rating, setRating] = useState(3);
+  const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
+  const userId = userData?.id;
+  const userName = userData.name || "Michael Dam";
+  const userEmail = userData.email || "michaeldam@loveai.com";
 
   return (
     <div className="text-center">
       <div className="flex gap-2 px-4 justify-center">
         {[1, 2, 3, 4, 5].map((star, index) => (
-          <div key={index} onClick={() => setRating(star)} className="cursor-pointer">
+          <div
+            key={index}
+            onClick={() => setRating(star)}
+            className="cursor-pointer"
+          >
             <GradientHeart filled={star <= rating} />
           </div>
         ))}
       </div>
       <span className="text-xs">
-        Michael Dam has earned {rating} out of 5 LoveAi hearts for volunteering & good deeds
+        {userName} has earned {rating} out of 5 LoveAi hearts for volunteering &
+        good deeds
       </span>
     </div>
   );

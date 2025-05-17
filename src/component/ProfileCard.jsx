@@ -15,6 +15,7 @@ const ProfileCard = ({
   rating,
   image,
   onInteract,
+  flag = "home",
 }) => {
   return (
     <div className="relative w-full max-w-[290px] h-[24rem] rounded-3xl overflow-hidden shadow-2xl  bg-white">
@@ -41,50 +42,52 @@ const ProfileCard = ({
         <img src={tick} alt="verified" className="w-4 h-4" />
       </div>
 
-
-
       {/* Action Buttons */}
-      <div className="action-buttons absolute bottom-20 w-full z-20 flex justify-center items-center gap-3">
-        <div className="flex flex-col items-center">
-          <button className="cross-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white">
-            <img
-              src={cross}
-              alt="pass"
-              className="w-full h-full object-contain"
-            />
-          </button>
+      {flag !== "matches" && (
+        <div className="action-buttons absolute bottom-20 w-full z-20 flex justify-center items-center gap-3">
+          <div className="flex flex-col items-center">
+            <button className="cross-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white">
+              <img
+                src={cross}
+                alt="pass"
+                className="w-full h-full object-contain"
+              />
+            </button>
+          </div>
+          <div className="flex flex-col items-center">
+            <button
+              className="heart-button h-12 w-12 p-2 rounded-full shadow-md border-2 border-white"
+              onClick={() =>
+                onInteract(id, "like", {
+                  id,
+                  name,
+                  age,
+                  distance,
+                  interests,
+                  occupation,
+                  rating,
+                  image,
+                })
+              }
+            >
+              <img
+                src={heart}
+                alt="heart"
+                className="w-full h-full object-contain"
+              />
+            </button>
+          </div>
+          <div className="flex flex-col items-center">
+            <button className="star-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white">
+              <img
+                src={star}
+                alt="like"
+                className="w-full h-full object-contain"
+              />
+            </button>
+          </div>
         </div>
-        <div className="flex flex-col items-center">
-          <button
-            className="heart-button h-12 w-12 p-2 rounded-full shadow-md border-2 border-white"
-            onClick={() => onInteract(id, "like", {
-              id,
-              name,
-              age,
-              distance,
-              interests,
-              occupation,
-              rating,
-              image,
-            })}
-          >
-            <img
-              src={heart}
-              alt="heart"
-              className="w-full h-full object-contain"
-            />
-          </button>
-        </div>
-        <div className="flex flex-col items-center">
-          <button className="star-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white">
-            <img
-              src={star}
-              alt="like"
-              className="w-full h-full object-contain"
-            />
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Bottom Info */}
       <div className=" bottom-card-bar absolute bottom-0 w-full text-white text-center px-4 pb-3 pt-4 z-20 backdrop-blur-md bg-black/40 rounded-t-xl">
@@ -95,10 +98,12 @@ const ProfileCard = ({
         <p className="text-sm interest-user">
           <strong>Interests</strong>:
           {Array.isArray(interests)
-            ? ` ${interests.slice(0, 2).join(", ")}${interests.length > 2 ? "..." : ""
-            }`
-            : ` ${interests.split(",").slice(0, 2).join(", ")}${interests.split(",").length > 2 ? "..." : ""
-            }`}
+            ? ` ${interests.slice(0, 2).join(", ")}${
+                interests.length > 2 ? "..." : ""
+              }`
+            : ` ${interests.split(",").slice(0, 2).join(", ")}${
+                interests.split(",").length > 2 ? "..." : ""
+              }`}
         </p>
 
         <p className="text-sm interest-user">

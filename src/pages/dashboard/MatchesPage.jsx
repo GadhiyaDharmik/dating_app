@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 
 import Sidebar from "../../component/SideBar.jsx";
-import ProfileCard from "../../component/ProfileCard";
-import SearchFilterBar from "../../component/SearchFilterBar";
-import StarRatingBar from "../../component/StarRatingBar";
+import ProfileCard from "../../component/ProfileCard.jsx";
+import SearchFilterBar from "../../component/SearchFilterBar.jsx";
+import StarRatingBar from "../../component/StarRatingBar.jsx";
 import axiosInspector from "../../http/axiosMain.js";
 import { useNavigate } from "react-router-dom";
 // import { axiosMain } from 'axios';
 
-function HomePage() {
+function MatchesPage() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -59,7 +59,7 @@ function HomePage() {
     }
 
     axiosInspector
-      .get("/users/matches?start=0&limit=10")
+      .get("/users/mutuals?start=0&limit=10")
       .then((res) => {
         setProfiles(res.data.list || []); // Adjust based on actual structure
         setLoading(false);
@@ -137,6 +137,7 @@ function HomePage() {
                       "https://via.placeholder.com/300"
                     }
                     onInteract={handleInteract}
+                    flag={"matches"}
                   />
                 ))
               )}
@@ -209,4 +210,4 @@ function HomePage() {
   );
 }
 
-export default HomePage;
+export default MatchesPage;

@@ -13,6 +13,7 @@ import MessagePage from "../pages/dashboard/MessagePage";
 import PersonalInfoPage from "../pages/dashboard/PersonalInfoPage";
 import HomePage from "../pages/dashboard/HomePage";
 import DashboardLayout from "../layouts/DashboardLayout"; // ✅ Import layout
+import MatchesPage from "../pages/dashboard/MatchesPage";
 
 function AppRoutes() {
   return (
@@ -37,6 +38,14 @@ function AppRoutes() {
           element={
             <DashboardLayout>
               <HomePage />
+            </DashboardLayout>
+          }
+        />
+         <Route
+          path="/dashboard/matches"
+          element={
+            <DashboardLayout>
+              <MatchesPage />
             </DashboardLayout>
           }
         />

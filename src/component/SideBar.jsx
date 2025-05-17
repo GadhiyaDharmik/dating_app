@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Home,
   Heart,
@@ -15,11 +15,20 @@ import {
 import logo from "../assets/LOGO.svg";
 import userImg from "../assets/bgImage.png";
 import { useNavigate } from "react-router-dom";
+import axiosInspector from "../http/axiosMain";
 
 const navItems = [
   { label: "Home", icon: <Home size={18} />, navigate: "/dashboard/home" },
-  { label: "Matches", icon: <Heart size={18} /> },
-  { label: "Messages", icon: <MessageCircle size={18} />, navigate: "/dashboard/messages" },
+  {
+    label: "Matches",
+    icon: <Heart size={18} />,
+    navigate: "/dashboard/matches",
+  },
+  {
+    label: "Messages",
+    icon: <MessageCircle size={18} />,
+    navigate: "/dashboard/messages",
+  },
   { label: "Personal Information", icon: <User size={18} /> },
   { label: "Privacy & Permission", icon: <Lock size={18} /> },
   { label: "Security", icon: <Shield size={18} /> },
@@ -31,14 +40,69 @@ const navItems = [
 
 const Sidebar = () => {
   const [active, setActive] = useState(() => {
-    const foundIndex = navItems.findIndex(item => item.navigate === location.pathname);
+    const foundIndex = navItems.findIndex(
+      (item) => item.navigate === location.pathname
+    );
     return foundIndex !== -1 ? foundIndex : 0;
-  }); const navigate = useNavigate();
+  });
+
+  const [previewImg, setPreviewImg] = useState(null);
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
+  const userId = userData?.id;
   const userName = userData.name || "Michael Dam";
   const userEmail = userData.email || "michaeldam@loveai.com";
-  const profileImg = userData.profile_picture || userImg;
+
+  // ✅ Use .url from localStorage
+  const profileImg = previewImg || userData.url || userImg;
+
+  const handleEditClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file || !userId) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      setPreviewImg(reader.result); // Show preview immediately
+
+      const token = localStorage.getItem("access_token");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await axiosInspector.put(
+          `/users/${userId}/media?media=Profile`,
+          formData,
+          {
+            headers: {
+              token,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        // ✅ Get updated image URL from server response if available
+        const updatedUrl = res?.data?.url || reader.result;
+
+        // ✅ Update localStorage user_Data with new URL
+        const updatedUserData = { ...userData, url: updatedUrl };
+        localStorage.setItem("user_Data", JSON.stringify(updatedUserData));
+
+        setPreviewImg(updatedUrl);
+        alert("✅ Profile image updated.");
+      } catch (error) {
+        console.error("Upload failed:", error.response || error);
+        alert("Failed to update profile image.");
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="h-screen w-72 bg-gradient-to-b from-[#00A3E0] to-[#00D4FF] text-white flex flex-col rounded-r-[30px] shadow-xl">
@@ -60,11 +124,34 @@ const Sidebar = () => {
         </div>
 
         {/* Pencil Icon */}
-        <div className="absolute top-1 right-[calc(50%-55px)] bg-[#FF6D9E] p-[6px] rounded-full shadow-md">
-          <svg xmlns="http://www.w3.org/2000/svg" className="text-white w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6H9v-3z" />
+        <div
+          className="absolute top-1 right-[calc(50%-55px)] bg-[#FF6D9E] p-[6px] rounded-full shadow-md cursor-pointer"
+          onClick={handleEditClick}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="text-white w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6H9v-3z"
+            />
           </svg>
         </div>
+
+        {/* Hidden File Input */}
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
 
         {/* People Icon */}
         <div className="absolute bottom-0 right-[calc(50%-50px)] bg-white text-[#00A3E0] p-[6px] rounded-full shadow-md">
@@ -76,7 +163,6 @@ const Sidebar = () => {
       <div className="text-center mb-2">
         <div className="flex items-center justify-center gap-1 font-semibold">
           {userName}
-          {/* <span className="bg-white text-[#00A3E0] rounded-full p-[2px]">✔️</span> */}
         </div>
         <p className="text-xs text-white/90">{userEmail}</p>
       </div>
@@ -94,12 +180,13 @@ const Sidebar = () => {
                 }
               }}
               className={`flex items-center gap-3 px-4 py-3 text-sm cursor-pointer transition-all
-      ${item.disabled ? "opacity-30 cursor-not-allowed" : ""}
-      ${active === index
-                  ? "bg-white/30 text-white font-semibold rounded-l-[999px]"
-                  : "hover:bg-white/10 text-white/80 rounded-l-[999px] duration-200"
+                ${item.disabled ? "opacity-30 cursor-not-allowed" : ""}
+                ${
+                  active === index
+                    ? "bg-white/30 text-white font-semibold rounded-l-[999px]"
+                    : "hover:bg-white/10 text-white/80 rounded-l-[999px] duration-200"
                 }
-    `}
+              `}
             >
               {item.icon}
               {item.label}

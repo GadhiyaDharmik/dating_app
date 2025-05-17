@@ -17,9 +17,10 @@ const FilterSection = ({ label, options, selected, onToggle }) => (
             onClick={() => onToggle(item)}
             className={`
               px-4 py-1 text-sm rounded-full
-              ${isActive
-                ? "bg-[linear-gradient(87.11deg,_#00A3E0_4.15%,_#00D4FF_81.96%)] text-white"
-                : "bg-[#F2F4F7] text-gray-700 hover:bg-gray-200"
+              ${
+                isActive
+                  ? "bg-[linear-gradient(87.11deg,_#00A3E0_4.15%,_#00D4FF_81.96%)] text-white"
+                  : "bg-[#F2F4F7] text-gray-700 hover:bg-gray-200"
               }
             `}
           >
@@ -44,12 +45,12 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
   const [ageMax, setAgeMax] = useState(MAX_AGE);
   const pct = (v) => ((v - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100;
 
-  const [gender, setGender] = useState("");    // "", "Male", "Female"
+  const [gender, setGender] = useState(""); // "", "Male", "Female"
   const [interests, setInterests] = useState([]);
   const [languages, setLanguages] = useState([]);
   const [religions, setReligions] = useState([]);
   const [matchIntent, setMatchIntent] = useState("");
-  const [isVerified, setIsVerified] = useState(null);  // true / false / null
+  const [isVerified, setIsVerified] = useState(null); // true / false / null
 
   // ─── Helpers ─────────────────────────────────────────────────────────
   const resetFilters = () => {
@@ -59,7 +60,7 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
       .then((res) => {
         setProfiles(res.data.list || []);
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => {
         setLoading(false);
         setSearchTerm("");
@@ -77,7 +78,9 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
   };
 
   const toggleArray = (arr, setArr, val) =>
-    arr.includes(val) ? setArr(arr.filter((x) => x !== val)) : setArr([...arr, val]);
+    arr.includes(val)
+      ? setArr(arr.filter((x) => x !== val))
+      : setArr([...arr, val]);
   const toggleInterest = (v) => toggleArray(interests, setInterests, v);
   const toggleLanguage = (v) => toggleArray(languages, setLanguages, v);
   const toggleReligion = (v) => toggleArray(religions, setReligions, v);
@@ -108,6 +111,31 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
     setShow(false);
   };
 
+  const applyGender = async (gender) => {
+    setLoading(true);
+    try {
+      const params = {
+        start: 0,
+        limit: 10,
+        search: searchTerm || undefined,
+        min_age: ageMin || undefined,
+        max_age: ageMax || undefined,
+        distance: distanceRange || undefined,
+        gender: gender || undefined,
+        interests: interests.length ? interests : undefined,
+        languages: languages.length ? languages : undefined,
+        religions: religions.length ? religions : undefined,
+        match_intent: matchIntent || undefined,
+        is_verified: isVerified,
+      };
+      const { data } = await axiosInspector.get("/users/matches", { params });
+      setProfiles(data.list || []);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+    setShow(false);
+  };
   return (
     <>
       {/* ─── Top Search Bar ─────────────────────────────────────────────── */}
@@ -127,23 +155,35 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
         {/* Quick gender toggles */}
         <div className="flex items-center gap-6 ml-4 text-sm font-medium text-gray-700">
           <span
-            onClick={() => setGender("")}
-            className={`flex items-center gap-1 cursor-pointer ${gender === "" ? "text-cyan-600" : ""
-              }`}
+            onClick={() => {
+              setGender("Random");
+              applyGender("Random");
+            }}
+            className={`flex items-center gap-1 cursor-pointer ${
+              gender === "" ? "text-cyan-600" : ""
+            }`}
           >
             <Users className="w-4 h-4" /> Random
           </span>
           <span
-            onClick={() => setGender("Male")}
-            className={`flex items-center gap-1 cursor-pointer ${gender === "Male" ? "text-cyan-600" : ""
-              }`}
+            onClick={() => {
+              setGender("Male");
+              applyGender("Male");
+            }}
+            className={`flex items-center gap-1 cursor-pointer ${
+              gender === "Male" ? "text-cyan-600" : ""
+            }`}
           >
             <User className="w-4 h-4" /> Men
           </span>
           <span
-            onClick={() => setGender("Female")}
-            className={`flex items-center gap-1 cursor-pointer ${gender === "Female" ? "text-cyan-600" : ""
-              }`}
+            onClick={() => {
+              applyGender("Female");
+              setGender("Female");
+            }}
+            className={`flex items-center gap-1 cursor-pointer ${
+              gender === "Female" ? "text-cyan-600" : ""
+            }`}
           >
             <User className="w-4 h-4" /> Women
           </span>
@@ -174,18 +214,28 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
         >
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Filter & Show</h2>
-            <X className="w-5 h-5 cursor-pointer hover:text-red-500" onClick={() => setShow(false)} />
+            <h2 className="text-xl font-semibold text-gray-800">
+              Filter & Show
+            </h2>
+            <X
+              className="w-5 h-5 cursor-pointer hover:text-red-500"
+              onClick={() => setShow(false)}
+            />
           </div>
 
           {/* Reset all */}
-          <button className="text-sm text-red-500 underline mb-6" onClick={resetFilters}>
+          <button
+            className="text-sm text-red-500 underline mb-6"
+            onClick={resetFilters}
+          >
             Reset all
           </button>
 
           {/* Distance range */}
           <div className="mb-6">
-            <p className="text-sm text-pink-500 font-medium mb-1">Distance range</p>
+            <p className="text-sm text-pink-500 font-medium mb-1">
+              Distance range
+            </p>
             <input
               type="range"
               min="0"
@@ -213,7 +263,7 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
                 className="absolute h-2 bg-cyan-400 rounded-full"
                 style={{
                   left: `${pct(ageMin)}%`,
-                  width: `${pct(ageMax) - pct(ageMin)}%`
+                  width: `${pct(ageMax) - pct(ageMin)}%`,
                 }}
               />
               <input
@@ -275,9 +325,19 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
           <FilterSection
             label="Interests"
             options={[
-              "Travel", "Cooking", "Hiking", "Yoga", "Gaming",
-              "Movies", "Books", "Animals", "Wine", "Comedy",
-              "Football", "Meditation", "Pet allowed"
+              "Travel",
+              "Cooking",
+              "Hiking",
+              "Yoga",
+              "Gaming",
+              "Movies",
+              "Books",
+              "Animals",
+              "Wine",
+              "Comedy",
+              "Football",
+              "Meditation",
+              "Pet allowed",
             ]}
             selected={interests}
             onToggle={toggleInterest}
@@ -287,9 +347,18 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
           <FilterSection
             label="Languages I Know"
             options={[
-              "English", "Gujarati", "Hindi", "Bengali",
-              "Portuguese", "Russian", "Japanese", "Turkish",
-              "French", "Korean", "German", "Vietnamese"
+              "English",
+              "Gujarati",
+              "Hindi",
+              "Bengali",
+              "Portuguese",
+              "Russian",
+              "Japanese",
+              "Turkish",
+              "French",
+              "Korean",
+              "German",
+              "Vietnamese",
             ]}
             selected={languages}
             onToggle={toggleLanguage}
@@ -299,9 +368,17 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
           <FilterSection
             label="Religion"
             options={[
-              "Casual", "Friendship", "Dating",
-              "Buddhism", "Judaism", "Sikhism", "Taoism",
-              "Jainism", "Shintoism", "Bahá'í Faith", "Zoroastrianism"
+              "Casual",
+              "Friendship",
+              "Dating",
+              "Buddhism",
+              "Judaism",
+              "Sikhism",
+              "Taoism",
+              "Jainism",
+              "Shintoism",
+              "Bahá'í Faith",
+              "Zoroastrianism",
             ]}
             selected={religions}
             onToggle={toggleReligion}
@@ -310,12 +387,22 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
           {/* Relationship Goals */}
           <FilterSection
             label="Relationship Goals"
-            options={[
-              "Love Commitment", "Casual Fun"
-            ]}
-            selected={matchIntent ? [matchIntent === "LoveCommitment" ? "Love Commitment" : "Casual Fun"] : []}
+            options={["Love Commitment", "Casual Fun"]}
+            selected={
+              matchIntent
+                ? [
+                    matchIntent === "LoveCommitment"
+                      ? "Love Commitment"
+                      : "Casual Fun",
+                  ]
+                : []
+            }
             onToggle={(val) =>
-              setMatchIntent(matchIntent === val?.split(" ")?.join("") ? "" : val?.split(" ")?.join(""))
+              setMatchIntent(
+                matchIntent === val?.split(" ")?.join("")
+                  ? ""
+                  : val?.split(" ")?.join("")
+              )
             }
           />
 
