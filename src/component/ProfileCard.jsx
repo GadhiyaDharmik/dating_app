@@ -58,7 +58,7 @@ const ProfileCard = ({
             <button
               className="heart-button h-12 w-12 p-2 rounded-full shadow-md border-2 border-white"
               onClick={() =>
-                onInteract(id, "like", {
+                onInteract(id, "save", {
                   id,
                   name,
                   age,
@@ -78,7 +78,18 @@ const ProfileCard = ({
             </button>
           </div>
           <div className="flex flex-col items-center">
-            <button className="star-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white">
+            <button className="star-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white"  onClick={() =>
+                onInteract(id, "like", {
+                  id,
+                  name,
+                  age,
+                  distance,
+                  interests,
+                  occupation,
+                  rating,
+                  image,
+                })
+              }>
               <img
                 src={star}
                 alt="like"
