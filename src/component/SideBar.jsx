@@ -30,8 +30,10 @@ const navItems = [
 ];
 
 const Sidebar = () => {
-  const [active, setActive] = useState(0);
-  const navigate = useNavigate();
+  const [active, setActive] = useState(() => {
+    const foundIndex = navItems.findIndex(item => item.navigate === location.pathname);
+    return foundIndex !== -1 ? foundIndex : 0;
+  }); const navigate = useNavigate();
 
   const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
   const userName = userData.name || "Michael Dam";

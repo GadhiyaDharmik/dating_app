@@ -57,7 +57,6 @@ function ChatWindow({ room, loading, onSend }) {
 
   return (
     <div className="flex-1 flex flex-col bg-white">
-      {/* Header */}
       <div className="flex items-center gap-3 border-b px-6 py-4">
         <img
           src={room.user?.url || userImg}
@@ -72,13 +71,6 @@ function ChatWindow({ room, loading, onSend }) {
         <Phone size={20} className="text-blue-500" />
       </div>
 
-      {/* Messages */}
-      {/* <textarea
-        readOnly
-        className="w-full h-32 p-2 bg-gray-100 text-sm mb-2"
-        value={room.log || ""}
-      /> */}
-
       <div
         ref={containerRef}
         className="flex-1 px-6 py-4 space-y-3 overflow-y-auto custom-scroll"
@@ -88,12 +80,9 @@ function ChatWindow({ room, loading, onSend }) {
           .map((m, i) => (
             <div
               key={i}
-              className={`flex items-end gap-2 ${m.isMe ? "justify-end" : "justify-start"
-                }`}
+              className={`flex items-end gap-2 ${m.isMe ? "justify-end" : "justify-start"}`}
             >
-              {!m.isMe && (
-                <img src={userImg} className="w-8 h-8 rounded-full" />
-              )}
+              {!m.isMe && <img src={userImg} className="w-8 h-8 rounded-full" />}
               <div
                 className={`px-4 py-2 rounded-2xl max-w-xs ${m.isMe
                   ? "bg-blue-100 text-blue-900"
@@ -106,7 +95,6 @@ function ChatWindow({ room, loading, onSend }) {
           ))}
       </div>
 
-      {/* Input */}
       <div className="border-t px-6 py-4 flex items-center gap-3">
         <input
           id="messageInput"
@@ -159,8 +147,9 @@ export default function MessagePage() {
           chat: [],
         }));
         setRooms(list);
+
         if (list[0]) {
-          setSelectedId(list[0].chat_room_id);
+          setSelectedId(list[0].chat_room_id); // ✅ FIXED
           setResiverDetail(list[0]);
         }
       })
@@ -170,7 +159,6 @@ export default function MessagePage() {
   // 2️⃣ connectSocket
   const connectSocket = useCallback(
     (roomId) => {
-      // close old
       if (wsRef.current) wsRef.current.close();
 
       const url = `${WS_BASE_URL}${roomId}?authorization=${token}`;
@@ -183,6 +171,7 @@ export default function MessagePage() {
         log += "[Connected]\n";
         setCurrentRoom((r) => ({ ...r, log }));
       };
+
       ws.onmessage = (evt) => {
         log += "[Received] " + evt.data + "\n";
 
@@ -204,11 +193,12 @@ export default function MessagePage() {
             )
           );
 
-          // Update current room if it matches
+          // Update current room if matched
           if (room_id === selectedId) {
             setCurrentRoom((r) => ({
-              ...r, // retain user, log, etc.
-              chat: [{ message, isMe}, ...r.chat],
+              ...r,
+              chat: [{ message, isMe }, ...r.chat],
+              log,
             }));
           }
         } catch (err) {
@@ -225,7 +215,7 @@ export default function MessagePage() {
         setCurrentRoom((r) => ({ ...r, log }));
       };
     },
-    [token, userId]
+    [token, userId, selectedId]
   );
 
   // 3️⃣ sendMessage
@@ -242,12 +232,27 @@ export default function MessagePage() {
         message_type: "Msg",
       };
       wsRef.current.send(JSON.stringify(payload));
+
+      // Update chat window
       setCurrentRoom((r) => ({
         ...r,
         chat: [{ message: msg, isMe: true }, ...r.chat],
       }));
+
+      // ✅ Update chat preview in rooms list
+      setRooms((prev) =>
+        prev.map((r) =>
+          r.chat_room_id === selectedId
+            ? {
+              ...r,
+              chat: [{ message: msg, isMe: true }, ...r.chat],
+              lastMessage: msg,
+            }
+            : r
+        )
+      );
     },
-    []
+    [selectedId]
   );
 
   // 4️⃣ When room changes
