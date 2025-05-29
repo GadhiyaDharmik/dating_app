@@ -1,14 +1,27 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Paperclip, Phone, Send } from "lucide-react";
 import userImg from "../../assets/bgImage.png";
-import { Phone, Send } from "lucide-react";
+import nullimage from "../../assets/null image.png";
+import videoCall from "../../assets/video Call Button.svg";
+import Call from "../../assets/call Button.svg";
 import axiosInspector from "../../http/axiosMain.js";
+import EmojiPicker from "emoji-picker-react";
 
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/chat/";
 
 function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-      <div className="p-4 border-none font-semibold text-lg">Messages</div>
+      <div className="p-4 font-semibold text-lg">Messages</div>
+      {/* Search bar */}
+      <div className="flex justify-center pb-2 ">
+        <input
+          type="text"
+          placeholder="Search Message"
+          className="w-full max-w-[290px] px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 bg-[#F3F3F3]"
+        />
+      </div>
+
       <div className="flex-1 overflow-y-auto custom-scroll">
         {rooms.map((room) => (
           <div
@@ -17,22 +30,28 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
               setResiverDetail(room);
               setSelectedId(room.chat_room_id);
             }}
-            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 
-              ${
-                selectedId === room.chat_room_id
-                  ? "bg-[#E8F8FF]"
-                  : "hover:bg-gray-50"
-              }`}
+            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 ${
+              selectedId === room.chat_room_id
+                ? "bg-[#E8F8FF]"
+                : "hover:bg-gray-50"
+            }`}
           >
             <img
               src={room.user?.url || userImg}
-              className="w-10 h-10 rounded-full object-cover"
+              className="w-10 h-10  object-cover"
             />
             <div className="flex-1">
               <div className="font-medium text-sm">{room.user?.name}</div>
               <div className="text-xs text-gray-500 truncate">
                 {room.lastMessage}
               </div>
+            </div>
+            {/* Right side time */}
+            <div className="text-xs text-gray-400 pl-2 min-w-[60px] text-right">
+              {new Date(room?.last_updated).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </div>
           </div>
         ))}
@@ -43,14 +62,62 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
 
 function ChatWindow({ room, loading, onSend, resiverDetail }) {
   const [input, setInput] = useState("");
+  const [showPicker, setShowPicker] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState([]);
   const containerRef = useRef(null);
+  const { token } = JSON.parse(localStorage.getItem("user_Data") || "{}");
 
   useEffect(() => {
     if (!loading && containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-    // console.log(resiverDetail, "roomroomroom");
   }, [room?.chat, loading]);
+
+  const onEmojiClick = (emojiData) => {
+    setInput((prev) => prev + emojiData.emoji);
+    setShowPicker(false);
+  };
+
+  const handleSend = async () => {
+    if (input.trim()) {
+      onSend(input, "Msg");
+      setInput("");
+    }
+
+    if (pendingFiles.length > 0) {
+      const formData = new FormData();
+      pendingFiles.forEach((file) => formData.append("files", file));
+
+      try {
+        const res = await axiosInspector.post("/chats/media", formData, {
+          headers: {
+            token: token,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        const uploaded = res.data;
+        for (const file of uploaded) {
+          const ext = file.path.split(".").pop().toLowerCase();
+          let type = "File";
+
+          if (["jpg", "jpeg", "png", "webp"].includes(ext)) type = "Image";
+          else if (["gif"].includes(ext)) type = "Gif";
+          else if (["mp4", "mov", "avi", "webm"].includes(ext)) type = "Video";
+
+          if (type === "Image") {
+            onSend(file.url, type, file.path);
+          } else {
+            onSend(file.url, type);
+          }
+        }
+
+        setPendingFiles([]);
+      } catch (err) {
+        console.error("Media upload failed:", err);
+      }
+    }
+  };
 
   if (loading || !room) {
     return (
@@ -62,6 +129,7 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
 
   return (
     <div className="flex-1 flex flex-col bg-white">
+      {/* Header */}
       <div className="flex items-center gap-3 border-b px-6 py-4 bg-white">
         <img
           src={resiverDetail?.user?.url || userImg}
@@ -74,15 +142,21 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
           </div>
         </div>
         <div className="flex gap-2 items-center">
-          <button className="w-8 h-8 flex items-center justify-center rounded-md bg-green-100 text-green-500">
-            <Phone size={16} />
+          <button className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(95.88deg,_rgba(255,197,197,0.2)_-2.12%]">
+            <img src={videoCall} alt="video call" />
           </button>
-          <button className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100 text-gray-500">
-            ...
+        </div>
+
+        <div className="flex gap-2 items-center">
+          <button className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(108.95deg, rgba(76, 200, 42, 0.16) -1.3%,]">
+            {/* <Phone size={16} /> */}
+            <img src={Call} alt="Call Button" />
+
           </button>
         </div>
       </div>
 
+      {/* Messages */}
       <div
         ref={containerRef}
         className="flex-1 px-6 py-4 space-y-3 overflow-y-auto custom-scroll max-h-[calc(100vh-180px)]"
@@ -101,38 +175,109 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
               />
             )}
             <div
-              className={`px-4 py-2 rounded-xl text-sm max-w-[70%] shadow
-                ${
-                  m.isMe
-                    ? "bg-gray-800 text-white rounded-br-none"
-                    : "bg-gray-100 text-gray-900 rounded-bl-none"
-                }`}
+              className={`rounded-sm text-xl p-1 max-w-[70%] shadow ${
+                m.isMe ? "bg-[#979797] text-white" : "bg-gray-100 text-gray-900"
+              }`}
             >
-              {m.message}
+              {["Image", "Gif"].includes(m.message_type) ? (
+                <div className="overflow-hidden border max-w-[250px] bg-white shadow-md border-[#00A3E0]">
+                  <img
+                    src={m.message || nullimage}
+                    alt="chat-media"
+                    className="object-contain h-[200px] w-full"
+                    onError={(e) => {
+                      e.target.onerror = null; // prevent infinite loop
+                      e.target.src = nullimage;
+                    }}
+                  />
+                </div>
+              ) : m.message_type === "Video" ? (
+                <video controls className="rounded-md max-w-full">
+                  <source src={m.message} type="video/mp4" />
+                </video>
+              ) : m.message_type === "File" ? (
+                <a
+                  href={m.message}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  Download File
+                </a>
+              ) : (
+                m.message
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="border-t px-4 py-3 flex items-center bg-white gap-2">
+      {/* Preview */}
+      {pendingFiles.length > 0 && (
+        <div className="flex gap-2 px-4 pb-2 overflow-x-auto">
+          {pendingFiles.map((file, idx) => {
+            const url = URL.createObjectURL(file);
+            return file.type.startsWith("image/") ? (
+              <img
+                key={idx}
+                src={url}
+                className="w-16 h-16 rounded object-cover"
+                alt="preview"
+              />
+            ) : file.type.startsWith("video/") ? (
+              <video key={idx} src={url} className="w-16 h-16 rounded" muted />
+            ) : (
+              <div
+                key={idx}
+                className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-sm"
+              >
+                📄
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="border-t px-4 py-3 flex items-center bg-white gap-2 relative">
+        <img
+          src="https://icons.getbootstrap.com/assets/icons/emoji-smile.svg"
+          alt="emoji"
+          className="w-6 h-6 cursor-pointer"
+          onClick={() => setShowPicker(!showPicker)}
+        />
+        {showPicker && (
+          <div className="absolute bottom-14 left-2 z-50">
+            <EmojiPicker onEmojiClick={onEmojiClick} />
+          </div>
+        )}
+
+        <input
+          type="file"
+          id="media-upload"
+          className="hidden"
+          multiple
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            setPendingFiles((prev) => [...prev, ...files]);
+          }}
+        />
+        <button
+          onClick={() => document.getElementById("media-upload").click()}
+          className="p-2 rounded-full"
+        >
+          <Paperclip />
+        </button>
+
         <input
           type="text"
           placeholder="Type a message…"
           className="flex-1 px-4 py-2 text-sm rounded-full border border-gray-200 shadow-sm focus:outline-none"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && input.trim()) {
-              onSend(input);
-              setInput("");
-            }
-          }}
         />
         <button
-          onClick={() => {
-            onSend(input);
-            setInput("");
-          }}
+          onClick={handleSend}
           className="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-md"
         >
           <Send size={18} />
@@ -182,7 +327,7 @@ export default function MessagePage() {
       ws.onmessage = (evt) => {
         try {
           const data = JSON.parse(evt.data);
-          const { from, message, room_id } = data;
+          const { from, message, room_id, message_type } = data;
           const isMe = from === String(userId);
 
           setRooms((prev) =>
@@ -190,7 +335,7 @@ export default function MessagePage() {
               r.chat_room_id === room_id
                 ? {
                     ...r,
-                    chat: [{ message, isMe }, ...r.chat],
+                    chat: [{ message, isMe, message_type }, ...r.chat],
                     lastMessage: message,
                   }
                 : r
@@ -200,7 +345,7 @@ export default function MessagePage() {
           if (room_id === selectedId) {
             setCurrentRoom((r) => ({
               ...r,
-              chat: [{ message, isMe }, ...r.chat],
+              chat: [{ message, isMe, message_type }, ...r.chat],
             }));
           }
         } catch (err) {
@@ -212,33 +357,40 @@ export default function MessagePage() {
   );
 
   const sendMessage = useCallback(
-    (msg, toId) => {
+    (msg, type = "Msg", filePath = null) => {
       if (!wsRef.current || wsRef.current.readyState !== 1) return;
+
       const payload = {
-        to: toId,
+        to: resiverDetail.user.id,
         message: msg,
-        file: null,
-        file_path: null,
-        message_type: "Msg",
+        file: type === "Image" ? msg : null,
+        file_path: filePath,
+        message_type: type,
       };
+
       wsRef.current.send(JSON.stringify(payload));
+
       setCurrentRoom((r) => ({
         ...r,
-        chat: [{ message: msg, isMe: true }, ...r.chat],
+        chat: [{ message: msg, isMe: true, message_type: type }, ...r.chat],
       }));
+
       setRooms((prev) =>
         prev.map((r) =>
           r.chat_room_id === selectedId
             ? {
                 ...r,
-                chat: [{ message: msg, isMe: true }, ...r.chat],
+                chat: [
+                  { message: msg, isMe: true, message_type: type },
+                  ...r.chat,
+                ],
                 lastMessage: msg,
               }
             : r
         )
       );
     },
-    [selectedId]
+    [selectedId, resiverDetail?.user?.id]
   );
 
   useEffect(() => {
@@ -252,6 +404,7 @@ export default function MessagePage() {
         const history = res.data.list.map((m) => ({
           message: m.message,
           isMe: m.sender.id === userId,
+          message_type: m.message_type || "Msg",
         }));
         setRooms((prev) =>
           prev.map((r) =>
@@ -279,7 +432,7 @@ export default function MessagePage() {
       <ChatWindow
         room={currentRoom}
         loading={loading}
-        onSend={(txt) => sendMessage(txt, resiverDetail.user.id)}
+        onSend={sendMessage}
         resiverDetail={resiverDetail}
       />
     </div>

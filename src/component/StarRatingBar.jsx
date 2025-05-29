@@ -1,37 +1,49 @@
 // src/components/StarRatingBar.jsx
 
 import { Info, Bell, ChevronDown, Heart, Crown } from "lucide-react";
-import logo from "../assets/blueheart.png";
+import GoldHeart from "../assets/golder heart.svg";
+import BlankHeart from "../assets/blank heart.svg";
+import PinkHeart from "../assets/pink heart logo.svg";
+import BlueHeart from "../assets/blue heart.svg";
 import { useState } from "react";
 
-export const GradientHeart = ({ filled }) => (
-  <div className="relative w-10 h-10">
-    <svg
-      width="40"
-      height="40"
-      viewBox="0 0 24 24"
-      className="absolute inset-0"
-    >
-      <defs>
-        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#D8B65E" />
-          <stop offset="50%" stopColor="#FEF18B" />
-          <stop offset="100%" stopColor="#B37D33" />
-        </linearGradient>
-      </defs>
-      <Heart
-        fill={filled ? "url(#goldGradient)" : "#E5E7EB"}
-        strokeWidth={0}
-        className="w-full h-full"
-      />
-    </svg>
-    <img
-      src={logo}
-      alt="logo inside heart"
-      className="absolute inset-0 w-5 h-5 m-auto rounded-full object-cover z-10"
-    />
-  </div>
-);
+export const GradientHeart = ({ filled }) => {
+  return (
+    <div className="relative w-10 h-10">
+      {filled ? (
+        <>
+          {/* Gold heart image as base */}
+          <img
+            src={GoldHeart} // heart shape image with gold theme
+            alt="gold heart background"
+            className="w-full h-full absolute inset-0 object-contain"
+          />
+          {/* Blue logo inside heart */}
+          <img
+            src={BlueHeart}
+            alt="logo inside gold heart"
+            className="absolute inset-0 w-5 h-5 m-auto rounded-full object-cover z-10"
+          />
+        </>
+      ) : (
+        <>
+          {/* Blank heart image */}
+          <img
+            src={BlankHeart}
+            alt="blank heart background"
+            className="w-full h-full absolute inset-0 object-contain"
+          />
+          {/* Pink logo inside heart */}
+          <img
+            src={PinkHeart}
+            alt="logo inside blank heart"
+            className="absolute inset-0 w-5 h-5 m-auto rounded-full object-cover z-10"
+          />
+        </>
+      )}
+    </div>
+  );
+};
 
 export const HeartRating = () => {
   const [rating, setRating] = useState(3);

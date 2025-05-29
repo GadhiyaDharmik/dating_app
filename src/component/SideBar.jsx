@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import logo from "../assets/LOGO.svg";
 import userImg from "../assets/bgImage.png";
+import pencil from "../assets/pencil.svg";
+import usericon from "../assets/userimg.svg";
+import verified from "../assets/verified.svg";
 import { useNavigate } from "react-router-dom";
 import axiosInspector from "../http/axiosMain";
 
@@ -105,7 +108,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="h-screen w-72 bg-gradient-to-b from-[#00A3E0] to-[#00D4FF] text-white flex flex-col rounded-r-[30px] shadow-xl">
+    <div className="h-screen w-72 bg-[#00A3E0] text-white flex flex-col rounded-r-[30px] shadow-xl">
       {/* Logo */}
       <div className="flex flex-col items-center pt-6">
         <img src={logo} alt="Logo" className="mb-6" />
@@ -128,20 +131,7 @@ const Sidebar = () => {
           className="absolute top-1 right-[calc(50%-55px)] bg-[#FF6D9E] p-[6px] rounded-full shadow-md cursor-pointer"
           onClick={handleEditClick}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="text-white w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6H9v-3z"
-            />
-          </svg>
+          <img src={pencil} alt="pencil" />
         </div>
 
         {/* Hidden File Input */}
@@ -155,7 +145,8 @@ const Sidebar = () => {
 
         {/* People Icon */}
         <div className="absolute bottom-0 right-[calc(50%-50px)] bg-white text-[#00A3E0] p-[6px] rounded-full shadow-md">
-          <User size={14} />
+          {/* <User size={14} /> */}
+          <img src={usericon} alt="user icon" />
         </div>
       </div>
 
@@ -163,36 +154,42 @@ const Sidebar = () => {
       <div className="text-center mb-2">
         <div className="flex items-center justify-center gap-1 font-semibold">
           {userName}
+          <div className="bg-white rounded-full p-1">
+            <img src={verified} alt="verified icon" className="w-3 h-3" />
+          </div>
         </div>
         <p className="text-xs text-white/90">{userEmail}</p>
       </div>
 
       {/* Scrollable Nav List */}
-      <div className="flex-1 overflow-y-auto px-4 custom-scroll">
-        <div className="space-y-2 pb-4">
-          {navItems.map((item, index) => (
+      <div className="flex flex-col w-full">
+        {navItems.map((item, index) => (
+          <div
+            key={index}
+            onClick={() => {
+              if (!item.disabled) {
+                setActive(index);
+                item.navigate && navigate(item.navigate);
+              }
+            }}
+            className={`${
+              active === index ? "bg-black/5 rounded-l-2xl" : "text-white/90"
+            } ${active - 1 === index ? "bg-black/5" : ""} ${
+              active + 1 === index ? "bg-black/5" : ""
+            }`}
+          >
             <div
-              key={index}
-              onClick={() => {
-                if (!item.disabled) {
-                  setActive(index);
-                  item.navigate && navigate(item.navigate);
-                }
-              }}
-              className={`flex items-center gap-3 px-4 py-3 text-sm cursor-pointer transition-all
-                ${item.disabled ? "opacity-30 cursor-not-allowed" : ""}
-                ${
-                  active === index
-                    ? "bg-white/30 text-white font-semibold rounded-l-[999px]"
-                    : "hover:bg-white/10 text-white/80 rounded-l-[999px] duration-200"
-                }
-              `}
+              className={`group flex items-center gap-3 px-4 py-2 cursor-pointer transition-all duration-300 relative overflow-hidden pl-10 shadow-none
+          ${active === index ? "rounded-l-2xl" : "bg-[#00A3E0] text-white/90"}
+          ${active - 1 === index ? "bg-[#00A3E0] rounded-br-4xl" : ""}
+          ${active + 1 === index ? "bg-[#00A3E0] rounded-tr-4xl" : ""}
+        `}
             >
-              {item.icon}
-              {item.label}
+              <span className="z-10">{item.icon}</span>
+              <span className="z-10 text-sm font-medium">{item.label}</span>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* Logout Button */}

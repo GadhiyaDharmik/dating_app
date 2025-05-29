@@ -12,6 +12,8 @@ button {
 
 .custom-scroll::-webkit-scrollbar {
   width: 6px;
+  display: none;
+
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {
@@ -106,4 +108,5 @@ button {
   right: 0;
   height: 35px;
 }
+
 
