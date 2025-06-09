@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Paperclip, Phone, Send } from "lucide-react";
 import userImg from "../../assets/bgImage.png";
 import nullimage from "../../assets/null image.png";
-import videoCall from "../../assets/video Call Button.svg";
+import videoCall from "../../assets/Video-Call-Button.svg";
 import Call from "../../assets/call Button.svg";
 import axiosInspector from "../../http/axiosMain.js";
 import EmojiPicker from "emoji-picker-react";
