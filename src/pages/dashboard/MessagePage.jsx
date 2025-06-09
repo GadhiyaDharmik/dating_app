@@ -6,6 +6,8 @@ import videoCall from "../../assets/video Call Button.svg";
 import Call from "../../assets/call Button.svg";
 import axiosInspector from "../../http/axiosMain.js";
 import EmojiPicker from "emoji-picker-react";
+import AgoraRTC from "agora-rtc-sdk-ng";
+import VoiceCallComponent from "./VoiceCallComponent.jsx";
 
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/chat/";
 
@@ -78,6 +80,97 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
     setShowPicker(false);
   };
 
+  let agoraClient = null;
+  let localAudioTrack = null;
+
+  const joinVoiceCall = async (appId, channelName, token, uid) => {
+    try {
+      agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+      await agoraClient.join(appId, channelName, token, uid);
+
+      localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+
+      await agoraClient.publish([localAudioTrack]);
+
+      console.log("Joined voice call successfully.");
+    } catch (err) {
+      console.error("Failed to join voice call:", err?.message || err);
+      console.error("Full error object:", err); // Add this line
+    }
+  };
+
+  const leaveVoiceCall = async () => {
+    if (localAudioTrack) {
+      localAudioTrack.close();
+      localAudioTrack = null;
+    }
+
+    if (agoraClient) {
+      await agoraClient.leave();
+      agoraClient = null;
+      console.log("Left voice call.");
+    }
+  };
+
+  const handleVideoCall = async () => {
+    const uid = userId || Math.floor(Math.random() * 10000);
+    const channelName = `room-${room.chat_room_id}`;
+
+    try {
+      const res = await fetch(
+        "https://c9e7-103-88-56-118.ngrok-free.app/rtc_token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            channelName,
+            uid,
+            expireTime: 3600,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      console.log("Agora Token Info:", data);
+
+      // Redirect to call page or open modal with Agora
+      // Or use a state toggle to show VideoCall component
+      alert(`Token: ${data.token}\nChannel: ${data.channelName}`);
+    } catch (error) {
+      console.error("Failed to get Agora token", error);
+    }
+  };
+  const handleVoiceCall = async () => {
+    const uid = resiverDetail.user.id || Math.floor(Math.random() * 10000);
+    const channelName = `voice-${room.chat_room_id}`;
+
+    try {
+      const response = await axiosInspector.post(
+        "https://c9e7-103-88-56-118.ngrok-free.app/rtc_token",
+        {
+          channelName,
+          uid,
+          expireTime: 3600,
+        }
+      );
+
+      const { rtcToken } = response.data;
+
+      await joinVoiceCall(
+        "cb8359241f474aca9597df671df45af1",
+        channelName,
+        rtcToken,
+        uid
+      );
+      alert("Voice call started");
+    } catch (error) {
+      console.error("Voice call failed:", error);
+    }
+  };
+
   const handleSend = async () => {
     if (input.trim()) {
       onSend(input, "Msg");
@@ -148,11 +241,18 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
         </div>
 
         <div className="flex gap-2 items-center">
-          <button className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(108.95deg, rgba(76, 200, 42, 0.16) -1.3%,]">
-            {/* <Phone size={16} /> */}
+          {/* <button
+            className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(108.95deg, rgba(76, 200, 42, 0.16) -1.3%,]"
+            onClick={() => handleVoiceCall()}
+          >
+            
             <img src={Call} alt="Call Button" />
+          </button> */}
 
-          </button>
+          <VoiceCallComponent
+            channelName={`voice-${room?.chat_room_id}`}
+            uid={resiverDetail}
+          />
         </div>
       </div>
 
