@@ -65,6 +65,12 @@ function SignUpFormComponent({ formRef }) {
     <form
       className="space-y-5 w-full text-sm"
       onSubmit={handleSubmit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault(); // Prevent default Enter behavior like selecting option from dropdown
+          formRef.current?.requestSubmit();
+        }
+      }}
       ref={formRef}
     >
       <h2 className="text-xl font-semibold text-gray-800 mb-2">
@@ -165,8 +171,8 @@ function SignUpFormComponent({ formRef }) {
       {feedback && (
         <p
           className={`mt-4 text-center text-sm ${feedback.startsWith("✅")
-              ? "text-green-600"
-              : "text-red-600"
+            ? "text-green-600"
+            : "text-red-600"
             }`}
         >
           {feedback}

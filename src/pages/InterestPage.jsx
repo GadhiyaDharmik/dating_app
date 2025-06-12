@@ -162,7 +162,16 @@ function InterestComponent({ formRef }) {
   };
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-5 w-full text-sm h-full">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault(); // Prevent default Enter behavior like selecting option from dropdown
+          formRef.current?.requestSubmit();
+        }
+      }}
+      className="space-y-5 w-full text-sm h-full">
       <h2 className="text-2xl font-bold text-gray-800 mb-1">Tell Your Interest</h2>
       <p className="text-gray-500 text-sm mb-4 font-semibold">Select up to 5 interests</p>
 

@@ -131,6 +131,13 @@ function AddPhotoComponent({ formRef, setIsLoding }) {
 
   return (
     <form
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          formRef.current?.requestSubmit();
+        }
+      }}
       ref={formRef}
       onSubmit={handleSubmit}
       className="bg-white p-6 rounded-xl w-full min-h-[400px] max-h-[600px]"

@@ -20,7 +20,7 @@ function GeneralInfoFormPage() {
 }
 
 function GeneralInfoFormComponent({ formRef }) {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   // 1. Dropdown data & form state
   const [dropdowns, setDropdowns] = useState([]);
@@ -102,7 +102,14 @@ function GeneralInfoFormComponent({ formRef }) {
   };
 
   return (
-    <form className="space-y-5 w-full text-sm" onSubmit={handleSubmit} ref={formRef} >
+    <form className="space-y-5 w-full text-sm" onSubmit={handleSubmit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault(); // Prevent default Enter behavior like selecting option from dropdown
+          formRef.current?.requestSubmit();
+        }
+      }}
+      ref={formRef} >
       <h2 className="text-xl font-semibold text-gray-800 mb-2">
         General Information
       </h2>
