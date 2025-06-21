@@ -6,7 +6,7 @@ import videoCall from "../../assets/Video-Call-Button.svg";
 // import Call from "../../assets/call Button.svg";
 import axiosInspector from "../../http/axiosMain.js";
 import EmojiPicker from "emoji-picker-react";
-import AgoraRTC from "agora-rtc-sdk-ng";
+// import AgoraRTC from "agora-rtc-sdk-ng";
 import VoiceCallComponent from "./VoiceCallComponent.jsx";
 
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/chat/";
@@ -32,11 +32,10 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
               setResiverDetail(room);
               setSelectedId(room.chat_room_id);
             }}
-            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 ${
-              selectedId === room.chat_room_id
-                ? "bg-[#E8F8FF]"
-                : "hover:bg-gray-50"
-            }`}
+            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 ${selectedId === room.chat_room_id
+              ? "bg-[#E8F8FF]"
+              : "hover:bg-gray-50"
+              }`}
           >
             <img
               src={room.user?.url || userImg}
@@ -62,7 +61,7 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
   );
 }
 
-function ChatWindow({ room, loading, onSend, resiverDetail }) {
+function ChatWindow({ room, loading, onSend, resiverDetail, userId }) {
   const [input, setInput] = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -83,93 +82,93 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
   let agoraClient = null;
   let localAudioTrack = null;
 
-  const joinVoiceCall = async (appId, channelName, token, uid) => {
-    try {
-      agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+  // const joinVoiceCall = async (appId, channelName, token, uid) => {
+  //   try {
+  //     agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-      await agoraClient.join(appId, channelName, token, uid);
+  //     await agoraClient.join(appId, channelName, token, uid);
 
-      localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+  //     localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
-      await agoraClient.publish([localAudioTrack]);
+  //     await agoraClient.publish([localAudioTrack]);
 
-      console.log("Joined voice call successfully.");
-    } catch (err) {
-      console.error("Failed to join voice call:", err?.message || err);
-      console.error("Full error object:", err); // Add this line
-    }
-  };
+  //     console.log("Joined voice call successfully.");
+  //   } catch (err) {
+  //     console.error("Failed to join voice call:", err?.message || err);
+  //     console.error("Full error object:", err); // Add this line
+  //   }
+  // };
 
-  const leaveVoiceCall = async () => {
-    if (localAudioTrack) {
-      localAudioTrack.close();
-      localAudioTrack = null;
-    }
+  // const leaveVoiceCall = async () => {
+  //   if (localAudioTrack) {
+  //     localAudioTrack.close();
+  //     localAudioTrack = null;
+  //   }
 
-    if (agoraClient) {
-      await agoraClient.leave();
-      agoraClient = null;
-      console.log("Left voice call.");
-    }
-  };
+  //   if (agoraClient) {
+  //     await agoraClient.leave();
+  //     agoraClient = null;
+  //     console.log("Left voice call.");
+  //   }
+  // };
 
-  const handleVideoCall = async () => {
-    const uid = userId || Math.floor(Math.random() * 10000);
-    const channelName = `room-${room.chat_room_id}`;
+  // const handleVideoCall = async () => {
+  //   const uid = userId || Math.floor(Math.random() * 10000);
+  //   const channelName = `room-${room.chat_room_id}`;
 
-    try {
-      const res = await fetch(
-        "https://c9e7-103-88-56-118.ngrok-free.app/rtc_token",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            channelName,
-            uid,
-            expireTime: 3600,
-          }),
-        }
-      );
+  //   try {
+  //     const res = await fetch(
+  //       "https://c9e7-103-88-56-118.ngrok-free.app/rtc_token",
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({
+  //           channelName,
+  //           uid,
+  //           expireTime: 3600,
+  //         }),
+  //       }
+  //     );
 
-      const data = await res.json();
-      console.log("Agora Token Info:", data);
+  //     const data = await res.json();
+  //     console.log("Agora Token Info:", data);
 
-      // Redirect to call page or open modal with Agora
-      // Or use a state toggle to show VideoCall component
-      alert(`Token: ${data.token}\nChannel: ${data.channelName}`);
-    } catch (error) {
-      console.error("Failed to get Agora token", error);
-    }
-  };
-  const handleVoiceCall = async () => {
-    const uid = resiverDetail.user.id || Math.floor(Math.random() * 10000);
-    const channelName = `voice-${room.chat_room_id}`;
+  //     // Redirect to call page or open modal with Agora
+  //     // Or use a state toggle to show VideoCall component
+  //     alert(`Token: ${data.token}\nChannel: ${data.channelName}`);
+  //   } catch (error) {
+  //     console.error("Failed to get Agora token", error);
+  //   }
+  // };
+  // const handleVoiceCall = async () => {
+  //   const uid = resiverDetail.user.id || Math.floor(Math.random() * 10000);
+  //   const channelName = `voice-${room.chat_room_id}`;
 
-    try {
-      const response = await axiosInspector.post(
-        "https://c9e7-103-88-56-118.ngrok-free.app/rtc_token",
-        {
-          channelName,
-          uid,
-          expireTime: 3600,
-        }
-      );
+  //   try {
+  //     const response = await axiosInspector.post(
+  //       "https://c9e7-103-88-56-118.ngrok-free.app/rtc_token",
+  //       {
+  //         channelName,
+  //         uid,
+  //         expireTime: 3600,
+  //       }
+  //     );
 
-      const { rtcToken } = response.data;
+  //     const { rtcToken } = response.data;
 
-      await joinVoiceCall(
-        "cb8359241f474aca9597df671df45af1",
-        channelName,
-        rtcToken,
-        uid
-      );
-      alert("Voice call started");
-    } catch (error) {
-      console.error("Voice call failed:", error);
-    }
-  };
+  //     await joinVoiceCall(
+  //       "cb8359241f474aca9597df671df45af1",
+  //       channelName,
+  //       rtcToken,
+  //       uid
+  //     );
+  //     alert("Voice call started");
+  //   } catch (error) {
+  //     console.error("Voice call failed:", error);
+  //   }
+  // };
 
   const handleSend = async () => {
     if (input.trim()) {
@@ -213,6 +212,7 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
   };
 
   if (loading || !room) {
+    console.log(resiverDetail, "resiverDetailresiverDetailresiverDetail")
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400">
         Loading…
@@ -250,9 +250,17 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
           </button> */}
 
           <VoiceCallComponent
-            channelName={`voice-${room?.chat_room_id}`}
-            uid={resiverDetail}
+            channelName={`user-${userId.slice(0, 6)}-to-${resiverDetail?.user?.id.slice(0, 6)}`}
+            userId={userId}
+            receiverId={resiverDetail?.user?.id}
+            isVideo={false}
           />
+
+          {/* <VoiceCallComponent
+            channelName={`voice-${resiverDetail?.chat_room_id}`}
+            receiverId={resiverDetail?.user?.id}
+            userId={userId}
+          /> */}
         </div>
       </div>
 
@@ -264,9 +272,8 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
         {[...(room.chat || [])].reverse().map((m, i) => (
           <div
             key={i}
-            className={`flex gap-2 ${
-              m.isMe ? "justify-end" : "justify-start"
-            } items-end`}
+            className={`flex gap-2 ${m.isMe ? "justify-end" : "justify-start"
+              } items-end`}
           >
             {!m.isMe && (
               <img
@@ -275,9 +282,8 @@ function ChatWindow({ room, loading, onSend, resiverDetail }) {
               />
             )}
             <div
-              className={`rounded-sm text-xl p-1 max-w-[70%] shadow ${
-                m.isMe ? "bg-[#979797] text-white" : "bg-gray-100 text-gray-900"
-              }`}
+              className={`rounded-sm text-xl p-1 max-w-[70%] shadow ${m.isMe ? "bg-[#979797] text-white" : "bg-gray-100 text-gray-900"
+                }`}
             >
               {["Image", "Gif"].includes(m.message_type) ? (
                 <div className="overflow-hidden border max-w-[250px] bg-white shadow-md border-[#00A3E0]">
@@ -434,10 +440,10 @@ export default function MessagePage() {
             prev.map((r) =>
               r.chat_room_id === room_id
                 ? {
-                    ...r,
-                    chat: [{ message, isMe, message_type }, ...r.chat],
-                    lastMessage: message,
-                  }
+                  ...r,
+                  chat: [{ message, isMe, message_type }, ...r.chat],
+                  lastMessage: message,
+                }
                 : r
             )
           );
@@ -479,13 +485,13 @@ export default function MessagePage() {
         prev.map((r) =>
           r.chat_room_id === selectedId
             ? {
-                ...r,
-                chat: [
-                  { message: msg, isMe: true, message_type: type },
-                  ...r.chat,
-                ],
-                lastMessage: msg,
-              }
+              ...r,
+              chat: [
+                { message: msg, isMe: true, message_type: type },
+                ...r.chat,
+              ],
+              lastMessage: msg,
+            }
             : r
         )
       );
@@ -534,6 +540,7 @@ export default function MessagePage() {
         loading={loading}
         onSend={sendMessage}
         resiverDetail={resiverDetail}
+        userId={userId}
       />
     </div>
   );

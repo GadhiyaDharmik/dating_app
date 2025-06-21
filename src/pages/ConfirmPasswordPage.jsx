@@ -16,18 +16,32 @@ function PasswordComponent() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const navigate = useNavigate()
+  const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
+
+  const validatePassword = (pwd) => {
+    const errors = {};
+    if (!pwd.match(/[A-Z]/)) {
+      errors.uppercase = "At least one uppercase letter required.";
+    }
+    if (pwd.length < 8) {
+      errors.length = "Password must be at least 8 characters.";
+    }
+    // ❌ Remove this block since special characters are optional
+    // if (!pwd.match(/[!@#$%^&*(),.?":{}|<>]/)) {
+    //   errors.special = "At least one special character required.";
+    // }
+
+    return errors;
+  };
+
 
   const getPasswordStrength = (password) => {
     if (password.length === 0) return "";
-    if (password.length < 6) return "Weak";
-    if (
-      password.match(/[A-Z]/) &&
-      password.match(/[0-9]/) &&
-      password.length >= 8
-    )
-      return "Strong";
-    return "Moderate";
+    const valid = validatePassword(password);
+    if (Object.keys(valid).length === 0) return "Strong";
+    if (password.length >= 6) return "Moderate";
+    return "Weak";
   };
 
   const strength = getPasswordStrength(password);
@@ -42,22 +56,28 @@ function PasswordComponent() {
 
   const handleSubmit = async () => {
     setFeedback("");
+
+    const passwordErrors = validatePassword(password);
+    if (Object.keys(passwordErrors).length > 0) {
+      setErrors(passwordErrors);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setFeedback("❌ Passwords do not match.");
       return;
     }
-    // get your user_id from wherever you stored it
-    const userId = localStorage.getItem("userId") || "<USER_ID>";
-    navigate("/login")
 
+    const userId = localStorage.getItem("userId") || "<USER_ID>";
     setLoading(true);
+
     try {
       await axiosMain.post("/profile-activate", {
         user_id: userId,
         password,
       });
       setFeedback("✅ Password set! Your profile is now active.");
-      // TODO: redirect or advance to next step
+      navigate("/login");
     } catch (err) {
       console.error(err);
       setFeedback(
@@ -70,7 +90,7 @@ function PasswordComponent() {
 
   return (
     <div className="flex items-center justify-center px-4 py-12 bg-gray-50">
-      <div className="max-w-md w-full p-8 rounded-lg ">
+      <div className="max-w-md w-full p-8 rounded-lg">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
           Create Password
         </h2>
@@ -84,9 +104,21 @@ function PasswordComponent() {
             type="password"
             placeholder="Enter password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrors(validatePassword(e.target.value));
+            }}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {errors.length && (
+            <p className="text-sm text-red-500 mt-1">{errors.length}</p>
+          )}
+          {errors.uppercase && (
+            <p className="text-sm text-red-500 mt-1">{errors.uppercase}</p>
+          )}
+          {errors.special && (
+            <p className="text-sm text-red-500 mt-1">{errors.special}</p>
+          )}
         </div>
 
         {/* Confirm Password */}
@@ -103,14 +135,15 @@ function PasswordComponent() {
           />
         </div>
 
+        {/* Password Strength */}
         <div className="flex items-center gap-3 my-2">
           <div className={`h-1 rounded ${strengthColor} w-[50%]`} />
           <span
             className={`text-sm font-medium ${strength === "Strong"
-                ? "text-green-600"
-                : strength === "Moderate"
-                  ? "text-yellow-600"
-                  : "text-red-600"
+              ? "text-green-600"
+              : strength === "Moderate"
+                ? "text-yellow-600"
+                : "text-red-600"
               }`}
           >
             {strength}
@@ -130,7 +163,9 @@ function PasswordComponent() {
         {/* Feedback */}
         {feedback && (
           <p
-            className={`mt-4 text-center text-sm ${feedback.startsWith("✅") ? "text-green-600" : "text-red-600"
+            className={`mt-4 text-center text-sm ${feedback.startsWith("✅")
+              ? "text-green-600"
+              : "text-red-600"
               }`}
           >
             {feedback}
