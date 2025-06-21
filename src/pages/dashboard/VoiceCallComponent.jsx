@@ -25,10 +25,46 @@ const VoiceCallComponent = ({ userId, peerId }) => {
   const fetchRTMToken = async () => {
     const response = await axiosInspector.post(RTM_TOKEN_API, {
       uid: userId,
-      expireTime: 3600,
-      channelName: channelName || "default_channel",
     });
-    return response?.data?.token;
+
+    const rtm = new RTM(APP_ID, userId);
+    await rtm.login({ token: response?.data?.token });
+    // await rtm.subscribe(channelName);
+    console.log("✅ RTM login & subscribe successful", rtm);
+
+    rtm.addEventListener("message", (event) => {
+      const { message, publisher } = event;
+      console.log("📩 Message from", publisher, ":", message);
+      try {
+        const payload = JSON.parse(message);
+        if (payload.type === "call_invitation" && payload.caller_id !== userId) {
+          setIncomingCall({
+            from: payload.caller_name,
+            caller_id: payload.caller_id,
+            call_type: payload.call_type,
+            channel: payload.channel_name,
+          });
+          setCallStatus("incoming");
+        } else if (payload.type === "call_status_update") {
+          if (payload.status === "accepted") {
+            setCallStatus("connecting");
+          } else if (payload.status === "declined") {
+            alert("Call declined");
+            setCallStatus("idle");
+            client.leave();
+          } else if (payload.status === "ended") {
+            setCallStatus("idle");
+            client.leave();
+            setJoined(false);
+          }
+        }
+      } catch (err) {
+        console.error("❌ Failed to parse message", err);
+      }
+    });
+
+    setRtmClient(rtm);
+    ;
   };
 
   const fetchRTCToken = async () => {
@@ -43,43 +79,8 @@ const VoiceCallComponent = ({ userId, peerId }) => {
   const initRTM = async () => {
     try {
       const rtmToken = await fetchRTMToken();
-      const rtm = new RTM(APP_ID, userId);
-      await rtm.login({ token: rtmToken });
-      await rtm.subscribe(channelName);
-      console.log("✅ RTM login & subscribe successful");
 
-      rtm.addEventListener("message", (event) => {
-        const { message, publisher } = event;
-        console.log("📩 Message from", publisher, ":", message);
-        try {
-          const payload = JSON.parse(message);
-          if (payload.type === "call_invitation" && payload.caller_id !== userId) {
-            setIncomingCall({
-              from: payload.caller_name,
-              caller_id: payload.caller_id,
-              call_type: payload.call_type,
-              channel: payload.channel_name,
-            });
-            setCallStatus("incoming");
-          } else if (payload.type === "call_status_update") {
-            if (payload.status === "accepted") {
-              setCallStatus("connecting");
-            } else if (payload.status === "declined") {
-              alert("Call declined");
-              setCallStatus("idle");
-              client.leave();
-            } else if (payload.status === "ended") {
-              setCallStatus("idle");
-              client.leave();
-              setJoined(false);
-            }
-          }
-        } catch (err) {
-          console.error("❌ Failed to parse message", err);
-        }
-      });
 
-      setRtmClient(rtm);
     } catch (err) {
       console.error("❌ RTM Init Failed:", err);
     }
@@ -94,16 +95,22 @@ const VoiceCallComponent = ({ userId, peerId }) => {
   };
 
   useEffect(() => {
-    if (userId && peerId) initRTM();
+    if (userId && peerId) {
+      initRTM().then((rtm) => {
+        if (rtm) setRtmClient(rtm);
+      });
+    }
+
     return () => {
       rtmClient?.logout().catch(console.warn);
     };
   }, [userId, peerId]);
 
+
   const joinVoiceCall = async (channel) => {
     try {
       const token = await fetchRTCToken();
-      await client.join(APP_ID, channel, token, userId);
+      await client.join(APP_ID, channelName, token, userId);
 
       const micTrack = await AgoraRTC.createMicrophoneAudioTrack();
       await client.publish([micTrack]);
@@ -147,7 +154,10 @@ const VoiceCallComponent = ({ userId, peerId }) => {
   };
 
   const callUser = async () => {
-    if (!peerId || !rtmClient) return alert("Peer or RTM not ready");
+    if (!peerId || !rtmClient) {
+      alert("RTM not ready yet. Please wait...");
+      return;
+    }
 
     try {
       await sendChannelMessage({
@@ -157,6 +167,7 @@ const VoiceCallComponent = ({ userId, peerId }) => {
         channel_name: channelName,
         call_type: "voice",
       });
+
       setCallStatus("calling");
       await joinVoiceCall(channelName);
     } catch (err) {
