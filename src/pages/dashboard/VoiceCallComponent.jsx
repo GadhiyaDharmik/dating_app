@@ -8,152 +8,101 @@ const BACKEND_API = "/rtc_token";
 const RTM_TOKEN_API = "/rtm_token";
 
 const VoiceCallComponent = ({ userId, peerId }) => {
-  const [client] = useState(() =>
-    AgoraRTC.createClient({ mode: "rtc", codec: "vp8" })
-  );
+  const [client] = useState(() => AgoraRTC.createClient({ mode: "rtc", codec: "vp8" }));
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
   const [joined, setJoined] = useState(false);
-  const [rtmClient, setRtmClient] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
-  const [callStatus, setCallStatus] = useState("idle"); // idle, calling, connecting, in-call
+  const [callStatus, setCallStatus] = useState("idle");
+  const [rtmClient, setRtmClient] = useState(null);
+  const { RTM } = AgoraRTM;
 
-  // Generate deterministic channel name
   const generateChannelName = (userId1, userId2) => {
-    const sortedIds = [userId1, userId2].sort();
-    return `${sortedIds[0]}_${sortedIds[1]}`;
+    return [userId1, userId2].sort().join("_");
   };
 
   const channelName = peerId ? generateChannelName(userId, peerId) : null;
 
-  const validateUID = (uid) => {
-    if (typeof uid === "string" && (uid.length < 1 || uid.length > 255)) {
-      alert("UID string length must be between 1 and 255 characters");
-      return false;
-    }
-    return true;
+  const fetchRTMToken = async () => {
+    const response = await axiosInspector.post(RTM_TOKEN_API, {
+      uid: userId,
+      expireTime: 3600,
+      channelName: channelName || "default_channel",
+    });
+    return response?.data?.token;
   };
 
-  const fetchRTMToken = async (uid) => {
+  const fetchRTCToken = async () => {
+    const response = await axiosInspector.post(BACKEND_API, {
+      uid: userId,
+      expireTime: 3600,
+      channelName: channelName || "default_channel",
+    });
+    return response?.data?.token;
+  };
+
+  const initRTM = async () => {
     try {
-      console.log("Fetching RTM token for UID:", uid);
-      const response = await axiosInspector.get(`${RTM_TOKEN_API}?user_id=${uid}`);
-      const rtmToken = response?.data?.token;
-      if (!rtmToken) {
-        throw new Error("No RTM token received from backend");
-      }
-      console.log("Received RTM Token:", rtmToken);
-      return rtmToken;
-    } catch (error) {
-      console.error("❌ Error fetching RTM token:", error);
-      throw error;
+      const rtmToken = await fetchRTMToken();
+      const rtm = new RTM(APP_ID, userId);
+      await rtm.login({ token: rtmToken });
+      await rtm.subscribe(channelName);
+      console.log("✅ RTM login & subscribe successful");
+
+      rtm.addEventListener("message", (event) => {
+        const { message, publisher } = event;
+        console.log("📩 Message from", publisher, ":", message);
+        try {
+          const payload = JSON.parse(message);
+          if (payload.type === "call_invitation" && payload.caller_id !== userId) {
+            setIncomingCall({
+              from: payload.caller_name,
+              caller_id: payload.caller_id,
+              call_type: payload.call_type,
+              channel: payload.channel_name,
+            });
+            setCallStatus("incoming");
+          } else if (payload.type === "call_status_update") {
+            if (payload.status === "accepted") {
+              setCallStatus("connecting");
+            } else if (payload.status === "declined") {
+              alert("Call declined");
+              setCallStatus("idle");
+              client.leave();
+            } else if (payload.status === "ended") {
+              setCallStatus("idle");
+              client.leave();
+              setJoined(false);
+            }
+          }
+        } catch (err) {
+          console.error("❌ Failed to parse message", err);
+        }
+      });
+
+      setRtmClient(rtm);
+    } catch (err) {
+      console.error("❌ RTM Init Failed:", err);
     }
   };
 
-  const fetchRTCToken = async (uid, channel) => {
+  const sendChannelMessage = async (msg) => {
     try {
-      console.log("Fetching RTC token for UID:", uid, "Channel:", channel);
-      const response = await axiosInspector.get(
-        `${BACKEND_API}?user_id=${uid}&channel_name=${channel}`
-      );
-      const rtcToken = response?.data?.token;
-      if (!rtcToken) {
-        throw new Error("No RTC token received from backend");
-      }
-      console.log("Received RTC Token:", rtcToken);
-      return rtcToken;
-    } catch (error) {
-      console.error("❌ Error fetching RTC token:", error);
-      throw error;
+      await rtmClient.publish(channelName, JSON.stringify(msg));
+    } catch (err) {
+      console.error("Send failed:", err);
     }
   };
 
   useEffect(() => {
-    let isUnmounted = false;
-
-    const initRTM = async (retries = 3, delay = 5000) => {
-      for (let attempt = 1; attempt <= retries; attempt++) {
-        if (isUnmounted) return;
-        try {
-          const rtmToken = await fetchRTMToken(userId);
-          const rtm = new AgoraRTM.RTM(APP_ID, userId);
-          await rtm.login({ token: rtmToken });
-          console.log("✅ RTM login success");
-
-          if (isUnmounted) {
-            rtm.logout();
-            return;
-          }
-
-          setRtmClient(rtm);
-
-          rtm.on("MessageFromPeer", ({ text }, senderId) => {
-            console.log("📩 Peer message from", senderId, ":", text);
-            try {
-              const payload = JSON.parse(text);
-              if (payload.type === "call_invitation" && payload.caller_id !== userId) {
-                setIncomingCall({
-                  from: payload.caller_name,
-                  caller_id: payload.caller_id,
-                  call_type: payload.call_type,
-                  channel: payload.channel_name,
-                });
-                setCallStatus("incoming");
-              } else if (payload.type === "call_status_update") {
-                if (payload.status === "accepted") {
-                  setCallStatus("connecting");
-                } else if (payload.status === "declined") {
-                  setCallStatus("idle");
-                  alert("Call declined by recipient");
-                  client.leave();
-                } else if (payload.status === "ended") {
-                  setCallStatus("idle");
-                  client.leave();
-                  setJoined(false);
-                }
-              }
-            } catch (err) {
-              console.error("Failed to parse peer message:", err);
-            }
-          });
-
-          rtm.on("ConnectionStateChanged", (newState, reason) => {
-            console.log(`Connection state changed to ${newState}, reason: ${reason}`);
-            if (reason === "REMOTE_LOGIN") {
-              alert("You have been logged out due to another session login.");
-              setRtmClient(null);
-            }
-          });
-
-          return;
-        } catch (err) {
-          console.error(`❌ RTM Login failed (attempt ${attempt}/${retries}):`, err);
-          if (attempt === retries) {
-            alert("Failed to initialize RTM service. Please try again later.");
-            throw err;
-          }
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-      }
-    };
-
-    if (userId && validateUID(userId)) initRTM();
-
+    if (userId && peerId) initRTM();
     return () => {
-      isUnmounted = true;
-      if (rtmClient) rtmClient.logout();
+      rtmClient?.logout().catch(console.warn);
     };
-  }, [userId]);
+  }, [userId, peerId]);
 
   const joinVoiceCall = async (channel) => {
     try {
-      if (!validateUID(userId)) return;
-
-      if (client.connectionState === "CONNECTED" || client.connectionState === "CONNECTING") {
-        console.warn("Already connected or connecting.");
-        return;
-      }
-
-      const token = await fetchRTCToken(userId, channel);
+      const token = await fetchRTCToken();
       await client.join(APP_ID, channel, token, userId);
 
       const micTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -162,19 +111,13 @@ const VoiceCallComponent = ({ userId, peerId }) => {
       setJoined(true);
       setCallStatus("in-call");
 
-      client.on("user-joined", (user) => {
-        console.log("User joined:", user.uid);
-        setCallStatus("in-call");
-      });
-
-      client.on("user-left", (user, reason) => {
-        console.log("User left:", user.uid, "Reason:", reason);
+      client.on("user-joined", () => setCallStatus("in-call"));
+      client.on("user-left", () => {
         setCallStatus("idle");
         setJoined(false);
       });
     } catch (err) {
-      console.error("Join error:", err);
-      alert(err.message);
+      console.error("RTC Join Error:", err);
       setCallStatus("idle");
     }
   };
@@ -189,16 +132,14 @@ const VoiceCallComponent = ({ userId, peerId }) => {
       await client.leave();
       setJoined(false);
       setCallStatus("idle");
-      console.log("👋 Left the voice call.");
 
       if (rtmClient && peerId) {
-        const endMessage = {
+        await sendChannelMessage({
           type: "call_status_update",
           status: "ended",
           ender_id: userId,
           channel_name: channelName,
-        };
-        await rtmClient.sendMessageToPeer({ text: JSON.stringify(endMessage) }, peerId);
+        });
       }
     } catch (err) {
       console.error("Leave error:", err);
@@ -206,87 +147,46 @@ const VoiceCallComponent = ({ userId, peerId }) => {
   };
 
   const callUser = async () => {
-    if (!peerId) {
-      alert("Peer ID missing.");
-      return;
-    }
-
-    if (!rtmClient) {
-      alert("RTM not initialized yet. Please wait a moment.");
-      return;
-    }
-
-    if (rtmClient.connectionState !== "CONNECTED") {
-      alert("RTM client is not connected. Please try again later.");
-      return;
-    }
+    if (!peerId || !rtmClient) return alert("Peer or RTM not ready");
 
     try {
-      const onlineStatus = await rtmClient.queryPeersOnlineStatus([peerId]);
-      if (!onlineStatus[peerId]) {
-        alert("The user you are trying to call is not online.");
-        return;
-      }
-
-      const callPayload = {
+      await sendChannelMessage({
         type: "call_invitation",
         caller_id: userId,
         caller_name: userId === "94e0555c-f4ad-4277-8a3c-99170844e542" ? "Ronak" : "Sanket",
         channel_name: channelName,
         call_type: "voice",
-      };
-
-      await rtmClient.sendMessageToPeer({ text: JSON.stringify(callPayload) }, peerId);
+      });
       setCallStatus("calling");
-      joinVoiceCall(channelName);
-      alert("📞 Call invitation sent.");
+      await joinVoiceCall(channelName);
     } catch (err) {
-      console.error("Failed to send call invitation:", err);
-      alert("Failed to send call invitation.");
+      console.error("Call failed:", err);
       setCallStatus("idle");
     }
   };
 
   const acceptCall = async () => {
     if (!incomingCall) return;
-    try {
-      const acceptMessage = {
-        type: "call_status_update",
-        status: "accepted",
-        receiver_id: userId,
-        channel_name: incomingCall.channel,
-      };
-      await rtmClient.sendMessageToPeer(
-        { text: JSON.stringify(acceptMessage) },
-        incomingCall.caller_id
-      );
-      await joinVoiceCall(incomingCall.channel);
-      setIncomingCall(null);
-    } catch (err) {
-      console.error("Error accepting call:", err);
-      alert("Failed to accept call.");
-      setCallStatus("idle");
-    }
+    await sendChannelMessage({
+      type: "call_status_update",
+      status: "accepted",
+      receiver_id: userId,
+      channel_name: incomingCall.channel,
+    });
+    await joinVoiceCall(incomingCall.channel);
+    setIncomingCall(null);
   };
 
   const declineCall = async () => {
     if (!incomingCall) return;
-    try {
-      const declineMessage = {
-        type: "call_status_update",
-        status: "declined",
-        receiver_id: userId,
-        channel_name: incomingCall.channel,
-      };
-      await rtmClient.sendMessageToPeer(
-        { text: JSON.stringify(declineMessage) },
-        incomingCall.caller_id
-      );
-      setIncomingCall(null);
-      setCallStatus("idle");
-    } catch (err) {
-      console.error("Error declining call:", err);
-    }
+    await sendChannelMessage({
+      type: "call_status_update",
+      status: "declined",
+      receiver_id: userId,
+      channel_name: incomingCall.channel,
+    });
+    setIncomingCall(null);
+    setCallStatus("idle");
   };
 
   return (
@@ -296,19 +196,13 @@ const VoiceCallComponent = ({ userId, peerId }) => {
       </h2>
 
       {callStatus === "in-call" && (
-        <button
-          onClick={leaveVoiceCall}
-          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-        >
+        <button onClick={leaveVoiceCall} className="px-4 py-2 bg-red-500 text-white rounded-md">
           End Call
         </button>
       )}
 
       {callStatus === "idle" && (
-        <button
-          onClick={callUser}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
+        <button onClick={callUser} className="px-4 py-2 bg-blue-600 text-white rounded-md">
           Call {userId === "94e0555c-f4ad-4277-8a3c-99170844e542" ? "Sanket" : "Ronak"}
         </button>
       )}
@@ -316,10 +210,7 @@ const VoiceCallComponent = ({ userId, peerId }) => {
       {callStatus === "calling" && (
         <div className="mt-4 p-3 bg-gray-100 rounded-md">
           <p className="font-semibold">Calling...</p>
-          <button
-            onClick={leaveVoiceCall}
-            className="px-3 py-1 bg-red-500 text-white rounded-md"
-          >
+          <button onClick={leaveVoiceCall} className="px-3 py-1 bg-red-500 text-white rounded-md">
             Cancel
           </button>
         </div>
@@ -333,19 +224,11 @@ const VoiceCallComponent = ({ userId, peerId }) => {
 
       {incomingCall && callStatus === "incoming" && (
         <div className="mt-4 p-3 border bg-gray-100 rounded-md">
-          <p className="font-semibold">
-            Incoming {incomingCall.call_type} call from {incomingCall.from}
-          </p>
-          <button
-            onClick={acceptCall}
-            className="px-3 py-1 bg-green-500 text-white rounded-md mr-2"
-          >
+          <p className="font-semibold">Incoming call from {incomingCall.from}</p>
+          <button onClick={acceptCall} className="px-3 py-1 bg-green-500 text-white rounded-md mr-2">
             Accept
           </button>
-          <button
-            onClick={declineCall}
-            className="px-3 py-1 bg-red-500 text-white rounded-md"
-          >
+          <button onClick={declineCall} className="px-3 py-1 bg-red-500 text-white rounded-md">
             Decline
           </button>
         </div>

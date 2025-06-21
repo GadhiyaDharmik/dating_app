@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.5",
+    "agora-rtc-react": "^2.4.0",
     "agora-rtc-sdk-ng": "^4.23.4",
+    "agora-rtm-react": "^1.1.2",
     "agora-rtm-sdk": "^2.2.2",
     "axios": "^1.9.0",
     "emoji-picker-react": "^4.12.2",

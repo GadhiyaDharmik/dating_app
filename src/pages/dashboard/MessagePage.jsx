@@ -250,7 +250,7 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId }) {
           </button> */}
 
           <VoiceCallComponent
-            channelName={`user-${userId.slice(0, 6)}-to-${resiverDetail?.user?.id.slice(0, 6)}`}
+            peerId={`user-${userId.slice(0, 6)}-to-${resiverDetail?.user?.id.slice(0, 6)}`}
             userId={userId}
             receiverId={resiverDetail?.user?.id}
             isVideo={false}
