@@ -3,7 +3,6 @@ import AgoraRTC from "agora-rtc-sdk-ng";
 import axiosInspector from "../../http/axiosMain";
 
 const APP_ID = "cb8359241f474aca9597df671df45af1";
-const CHANNEL_NAME = "test";
 
 const userTokens = {
   "user1": "007eJxTYPjwuuXDqZ+3BR994I1VNd9ivvf9wgDGf8+K//k6VXhs5N+swJCcZGFsamlkYphmYm6SmJxoaWppnpJmZm6YkmZimphmeLQnLKMhkJHhLd9tZkYGCATxWRhKUotLGBgASvMimw==",
@@ -17,13 +16,15 @@ const VoiceCallComponent = ({ userId, peerId }) => {
   const [client] = useState(() => AgoraRTC.createClient({ mode: "rtc", codec: "vp8" }));
   const [localTracks, setLocalTracks] = useState([]);
   const [joined, setJoined] = useState(false);
+  const CHANNEL_NAME = peerId;
+
 
 
   const fetchRTCToken = async () => {
     const response = await axiosInspector.post(BACKEND_API, {
-      uid: userId === "bfe1b897-0015-409a-a763-cc157c87313b" ? "1" : "2",
+      uid: userId,
       expireTime: 3600,
-      channelName: "test",
+      channelName: CHANNEL_NAME,
     });
     return response?.data?.token;
   };
@@ -40,7 +41,7 @@ const VoiceCallComponent = ({ userId, peerId }) => {
     }
 
     try {
-      await client.join(APP_ID, CHANNEL_NAME, token, userId === "bfe1b897-0015-409a-a763-cc157c87313b" ? "1" : "2");
+      await client.join(APP_ID, CHANNEL_NAME, token, userId);
 
       const [micTrack, camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
       await client.publish([micTrack, camTrack]);
