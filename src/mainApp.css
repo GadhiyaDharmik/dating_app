@@ -75,7 +75,7 @@ button {
 /* Button group spacing fix */
 .action-buttons {
   bottom: 80px;
-  z-index: 222;
+  z-index: 23;
 }
 
 .bottom-card-bar {

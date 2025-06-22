@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { PlusCircle } from "lucide-react";
 import RangeSlider from "react-range-slider-input";
 import "react-range-slider-input/dist/style.css";
+import axiosMain from "../http/axiosMain";
+
 
 function PersonalInfoForm() {
   return (
@@ -70,8 +72,57 @@ function ImagesComponent() {
   );
 }
 
+
+
 function PersonalInfoFormData() {
+  const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
+  const token = userData?.token;
   const [selectedInterests, setSelectedInterests] = useState([]); // State to manage selected interests
+  const [fullName, setFullName] = useState(userData.name || "");
+  const [userName, setUserName] = useState(userData.username || "");
+  const [dob, setDob] = useState(userData.dob || "");
+  const [gender, setGender] = useState(userData.gender || "");
+  const [mobile, setMobile] = useState(`+${userData.country_code} ${userData.number}` || "");
+  const [email, setEmail] = useState(userData.email || "");
+  const [distanceRange, setDistanceRange] = useState([18, 25]);
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+
+    const formData = {
+      name: fullName,
+      username: userName,
+      dob,
+      gender,
+    };
+
+    try {
+      const res = await axiosMain.put(`/profile`, formData, {
+        headers: {
+          token,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("Profile updated:", res.data);
+
+      // Update only 4 fields in localStorage
+      const updatedUserData = {
+        ...userData,
+        name: fullName,
+        username: userName,
+        dob: dob,
+        gender: gender,
+      };
+      localStorage.setItem("user_Data", JSON.stringify(updatedUserData));
+
+    } catch (error) {
+      console.error("Update failed:", error);
+      alert("Something went wrong during update.");
+    }
+  };
+
+
 
   const interests = {
     Sports: ["Cricket", "Football", "Swimming"],
@@ -99,32 +150,49 @@ function PersonalInfoFormData() {
     }
   };
 
-  const [distanceRange, setDistanceRange] = useState([18, 25]);
-  const [gender, setGender] = useState(""); // State to manage selected gender
+
 
   return (
-    <form className="bg-white p-6 rounded-xl shadow-md space-y-6">
+    <form
+      className="bg-white p-6 rounded-xl shadow-md space-y-6"
+      onSubmit={handleUpdateProfile}
+    >
       {/* Section 1 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm mb-1">Full Name*</label>
-          <input className="input" placeholder="Enter your full name" />
+          <input
+            className="input"
+            placeholder="Enter your full name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
         </div>
         <div>
           <label className="block text-sm mb-1">User Name*</label>
-          <input className="input" placeholder="Enter your username" />
+          <input
+            className="input"
+            placeholder="Enter your username"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+          />
         </div>
         <div>
           <label className="block text-sm mb-1">Mobile Number*</label>
-          <input className="input" placeholder="Enter your mobile number" />
+          <input className="input" placeholder="Enter your mobile number" value={mobile} readOnly />
         </div>
         <div>
           <label className="block text-sm mb-1">Date of Birth*</label>
-          <input className="input" type="date" />
+          <input
+            className="input"
+            type="date"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+          />
         </div>
         <div>
           <label className="block text-sm mb-1">Email*</label>
-          <input className="input" placeholder="Enter your email" />
+          <input className="input" placeholder="Enter your email" value={email} readOnly />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">
@@ -208,15 +276,13 @@ function PersonalInfoFormData() {
                       key={interest}
                       type="button"
                       onClick={() => handleInterestClick(category, interest)}
-                      className={`px-4 py-2 rounded-full text-sm transition-colors ${
-                        isSelected
-                          ? "bg-[#00D4FF] text-white"
-                          : "bg-[#FF9999] text-white"
-                      } ${
-                        selectedInterests.length >= 5 && !isSelected
+                      className={`px-4 py-2 rounded-full text-sm transition-colors ${isSelected
+                        ? "bg-[#00D4FF] text-white"
+                        : "bg-[#FF9999] text-white"
+                        } ${selectedInterests.length >= 5 && !isSelected
                           ? "cursor-not-allowed opacity-50"
                           : "cursor-pointer"
-                      }`}
+                        }`}
                       disabled={selectedInterests.length >= 5 && !isSelected}
                     >
                       {interest}

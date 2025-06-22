@@ -53,6 +53,10 @@ function SignUpComponent() {
     }
   };
 
+  const handleEmailChange = (e) => {
+    localStorage.setItem("userEmail", e.target.value);
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Sign Up</h2>
@@ -98,6 +102,7 @@ function SignUpComponent() {
           type="text"
           ref={emailRef}
           placeholder="Enter your email address"
+          onChange={handleEmailChange}
           className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
@@ -136,9 +141,8 @@ function SignUpComponent() {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 text-white mb-5 font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] ${
-            loading ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
-          } transition`}
+          className={`w-full py-2 text-white mb-5 font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] ${loading ? "opacity-50 cursor-not-allowed" : "hover:opacity-90"
+            } transition`}
         >
           {loading ? "Sending…" : "Sign Up"}
         </button>
@@ -146,9 +150,8 @@ function SignUpComponent() {
 
       {feedback && (
         <p
-          className={`mt-4 text-center text-sm ${
-            feedback.startsWith("✅") ? "text-green-600" : "text-red-600"
-          }`}
+          className={`mt-4 text-center text-sm ${feedback.startsWith("✅") ? "text-green-600" : "text-red-600"
+            }`}
         >
           {feedback}
         </p>

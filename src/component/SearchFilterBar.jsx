@@ -1,6 +1,6 @@
 // SearchFilterBar.jsx
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, Users, User, Filter, X } from "lucide-react";
 import axiosInspector from "../http/axiosMain.js";
 
@@ -17,10 +17,9 @@ const FilterSection = ({ label, options, selected, onToggle }) => (
             onClick={() => onToggle(item)}
             className={`
               px-4 py-1 text-sm rounded-full
-              ${
-                isActive
-                  ? "bg-[linear-gradient(87.11deg,_#00A3E0_4.15%,_#00D4FF_81.96%)] text-white"
-                  : "bg-[#F2F4F7] text-gray-700 hover:bg-gray-200"
+              ${isActive
+                ? "bg-[linear-gradient(87.11deg,_#00A3E0_4.15%,_#00D4FF_81.96%)] text-white"
+                : "bg-[#F2F4F7] text-gray-700 hover:bg-gray-200"
               }
             `}
           >
@@ -60,7 +59,7 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
       .then((res) => {
         setProfiles(res.data.list || []);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         setLoading(false);
         setSearchTerm("");
@@ -111,6 +110,21 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
     setShow(false);
   };
 
+  //search after enter three character
+  useEffect(() => {
+    if (searchTerm.length >= 3) {
+      applyFilters();
+    } else if (searchTerm.length === 0) {
+      applyFilters(); // or resetFilters() if you want completely unfiltered data
+    }
+  }, [searchTerm]);
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value); // let useEffect handle the filter
+    console.log("seeee", searchTerm);
+
+  };
+
   const applyGender = async (gender) => {
     setLoading(true);
     try {
@@ -147,7 +161,8 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
             placeholder="Search by name..."
             className="flex-grow outline-none text-sm text-gray-700"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            // onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
           />
           <Search className="w-4 h-4 text-gray-400" />
         </div>
@@ -159,9 +174,8 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
               setGender("Random");
               applyGender("Random");
             }}
-            className={`flex items-center gap-1 cursor-pointer ${
-              gender === "" ? "text-cyan-600" : ""
-            }`}
+            className={`flex items-center gap-1 cursor-pointer ${gender === "" ? "text-cyan-600" : ""
+              }`}
           >
             <Users className="w-4 h-4" /> Random
           </span>
@@ -170,9 +184,8 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
               setGender("Male");
               applyGender("Male");
             }}
-            className={`flex items-center gap-1 cursor-pointer ${
-              gender === "Male" ? "text-cyan-600" : ""
-            }`}
+            className={`flex items-center gap-1 cursor-pointer ${gender === "Male" ? "text-cyan-600" : ""
+              }`}
           >
             <User className="w-4 h-4" /> Men
           </span>
@@ -181,9 +194,8 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
               applyGender("Female");
               setGender("Female");
             }}
-            className={`flex items-center gap-1 cursor-pointer ${
-              gender === "Female" ? "text-cyan-600" : ""
-            }`}
+            className={`flex items-center gap-1 cursor-pointer ${gender === "Female" ? "text-cyan-600" : ""
+              }`}
           >
             <User className="w-4 h-4" /> Women
           </span>
@@ -213,10 +225,7 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
           "
         >
           {/* Header */}
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Filter & Show
-            </h2>
+          <div className="flex justify-end mb-4">
             <X
               className="w-5 h-5 cursor-pointer hover:text-red-500"
               onClick={() => setShow(false)}
@@ -224,12 +233,20 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
           </div>
 
           {/* Reset all */}
-          <button
-            className="text-sm text-red-500 underline mb-6"
-            onClick={resetFilters}
-          >
-            Reset all
-          </button>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Filter & Show
+            </h2>
+            <div>
+
+              <button
+                className="text-sm text-red-500 underline"
+                onClick={resetFilters}
+              >
+                Reset all
+              </button>
+            </div>
+          </div>
 
           {/* Distance range */}
           <div className="mb-6">
@@ -391,10 +408,10 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
             selected={
               matchIntent
                 ? [
-                    matchIntent === "LoveCommitment"
-                      ? "Love Commitment"
-                      : "Casual Fun",
-                  ]
+                  matchIntent === "LoveCommitment"
+                    ? "Love Commitment"
+                    : "Casual Fun",
+                ]
                 : []
             }
             onToggle={(val) =>
