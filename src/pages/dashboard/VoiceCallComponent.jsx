@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
+import axiosInspector from "../../http/axiosMain";
 
 const APP_ID = "cb8359241f474aca9597df671df45af1";
 const CHANNEL_NAME = "test";
@@ -9,13 +10,29 @@ const userTokens = {
   "user2": "007eJxTYHDpzry2qP3gs40r1kt928Et+sSnNag07+oHpmPz2NWTbZ4oMCQnWRibWhqZGKaZmJskJidamlqap6SZmRumpJmYJqYZMvWGZTQEMjKw87SzMjJAIIjPwlCSWlzCwAAAgqke/Q=="
 };
 
-const VoiceCallComponent = ({ userId }) => {
+const BACKEND_API = "https://2af8-103-240-204-134.ngrok-free.app/rtc_token";
+const RTM_TOKEN_API = "/rtm_token";
+
+const VoiceCallComponent = ({ userId, peerId }) => {
   const [client] = useState(() => AgoraRTC.createClient({ mode: "rtc", codec: "vp8" }));
   const [localTracks, setLocalTracks] = useState([]);
   const [joined, setJoined] = useState(false);
 
+
+  const fetchRTCToken = async () => {
+    const response = await axiosInspector.post(BACKEND_API, {
+      uid: userId === "bfe1b897-0015-409a-a763-cc157c87313b" ? "1" : "2",
+      expireTime: 3600,
+      channelName: "test",
+    });
+    return response?.data?.token;
+  };
+
+
   const joinCall = async () => {
-    const token = userTokens[userId === "bfe1b897-0015-409a-a763-cc157c87313b" ? "user1" : "user2"];
+    const token = await fetchRTCToken();
+    // const token = userTokens[userId === "bfe1b897-0015-409a-a763-cc157c87313b" ? "user1" : "user2"]; // Fallback to user1 token if not found
+    console.log("Fetched token:", token);
 
     if (!token) {
       alert("Invalid user or token not found.");
@@ -23,7 +40,7 @@ const VoiceCallComponent = ({ userId }) => {
     }
 
     try {
-      await client.join(APP_ID, CHANNEL_NAME, token, userId);
+      await client.join(APP_ID, CHANNEL_NAME, token, userId === "bfe1b897-0015-409a-a763-cc157c87313b" ? "1" : "2");
 
       const [micTrack, camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
       await client.publish([micTrack, camTrack]);
