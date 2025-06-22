@@ -46,7 +46,21 @@ const ProfileCard = ({
       {flag !== "matches" && (
         <div className="action-buttons absolute bottom-20 w-full z-20 flex justify-center items-center gap-3">
           <div className="flex flex-col items-center">
-            <button className="cross-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white">
+            <button
+              className="cross-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white"
+              onClick={() =>
+                onInteract(id, "pass", {
+                  id,
+                  name,
+                  age,
+                  distance,
+                  interests,
+                  occupation,
+                  rating,
+                  image,
+                })
+              }
+            >
               <img
                 src={cross}
                 alt="pass"
@@ -78,18 +92,18 @@ const ProfileCard = ({
             </button>
           </div>
           <div className="flex flex-col items-center">
-            <button className="star-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white"  onClick={() =>
-                onInteract(id, "like", {
-                  id,
-                  name,
-                  age,
-                  distance,
-                  interests,
-                  occupation,
-                  rating,
-                  image,
-                })
-              }>
+            <button className="star-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white" onClick={() =>
+              onInteract(id, "like", {
+                id,
+                name,
+                age,
+                distance,
+                interests,
+                occupation,
+                rating,
+                image,
+              })
+            }>
               <img
                 src={star}
                 alt="like"
@@ -109,12 +123,10 @@ const ProfileCard = ({
         <p className="text-sm interest-user">
           <strong>Interests</strong>:
           {Array.isArray(interests)
-            ? ` ${interests.slice(0, 2).join(", ")}${
-                interests.length > 2 ? "..." : ""
-              }`
-            : ` ${interests.split(",").slice(0, 2).join(", ")}${
-                interests.split(",").length > 2 ? "..." : ""
-              }`}
+            ? ` ${interests.slice(0, 2).join(", ")}${interests.length > 2 ? "..." : ""
+            }`
+            : ` ${interests.split(",").slice(0, 2).join(", ")}${interests.split(",").length > 2 ? "..." : ""
+            }`}
         </p>
 
         <p className="text-sm interest-user">

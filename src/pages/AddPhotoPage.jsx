@@ -14,7 +14,7 @@ function AddPhotoPage() {
       titleText="You can add up to 10 photos or skip and add later"
       text="It will Display on your Profile and you will not be able to change it later"
       hasButton={true}
-      hasSkip={true}
+      hasSkip={false}
       onSkipClick={() => navigate("/profile/ideal-match")}
       onButtonClick={() => formRef.current?.requestSubmit()}
       buttonText={isLoding ? "Loading..." : "NEXT"}
@@ -29,6 +29,8 @@ function AddPhotoComponent({ formRef, setIsLoding }) {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const maxPhotos = 10;
+  const [errorMessage, setErrorMessage] = useState("");
+
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || []);
@@ -57,6 +59,7 @@ function AddPhotoComponent({ formRef, setIsLoding }) {
   };
 
   const handleAddPhoto = () => {
+    setErrorMessage("");
     fileInputRef.current.click();
   };
 
@@ -87,6 +90,14 @@ function AddPhotoComponent({ formRef, setIsLoding }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (photos.length < 2) {
+      setErrorMessage("Please upload at least 2 photos to continue.");
+      return;
+    }
+
+    setErrorMessage("");
+
     setIsLoding(true)
     const token =
       JSON.parse(localStorage.getItem("user_Data"))?.token ||
@@ -200,6 +211,13 @@ function AddPhotoComponent({ formRef, setIsLoding }) {
           )}
         </div>
       </div>
+
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="text-center text-red-600 mt-35 font-small" style={{fontSize:"14px"}}>
+          {errorMessage}
+        </div>
+      )}
     </form>
   );
 }

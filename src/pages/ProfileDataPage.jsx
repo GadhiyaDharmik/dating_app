@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import MainSignUp from "../component/MainSignUp";
 import { useNavigate } from "react-router-dom";
 import axiosMain from "../http/axiosMain"; // ← your axios instance
@@ -29,6 +29,7 @@ function SignUpFormComponent({ formRef }) {
   const [gender, setGender] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [isDisabled, setIsDisabled] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -59,6 +60,20 @@ function SignUpFormComponent({ formRef }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const storedEmail = localStorage.getItem("userEmail");
+    if (storedEmail) {
+      setEmail(storedEmail);
+      setIsDisabled(true);
+    }
+  }, []);
+
+  const handleChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    localStorage.setItem("userEmail", newEmail);
   };
 
   return (
@@ -113,8 +128,10 @@ function SignUpFormComponent({ formRef }) {
         <input
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          // onChange={(e) => setEmail(e.target.value)}
+          onChange={handleChange}
           placeholder="Enter your email"
+          disabled={isDisabled}
           className="px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm shadow-sm"
         />
       </div>
