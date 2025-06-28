@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PlusCircle } from "lucide-react";
 import RangeSlider from "react-range-slider-input";
 import "react-range-slider-input/dist/style.css";
@@ -75,46 +75,200 @@ function ImagesComponent() {
 
 
 function PersonalInfoFormData() {
-  const userData = JSON.parse(localStorage.getItem("user_Data")) || {};
-  const token = userData?.token;
-  const [selectedInterests, setSelectedInterests] = useState([]); // State to manage selected interests
-  const [fullName, setFullName] = useState(userData.name || "");
-  const [userName, setUserName] = useState(userData.username || "");
-  const [dob, setDob] = useState(userData.dob || "");
-  const [gender, setGender] = useState(userData.gender || "");
-  const [mobile, setMobile] = useState(`+${userData.country_code} ${userData.number}` || "");
-  const [email, setEmail] = useState(userData.email || "");
+
+  const [userData, setUserData] = useState({});
+  const [initialForm, setInitialForm] = useState(null);
+  const [initialAbout, setInitialAbout] = useState("");
+  const [initialDistanceRange, setInitialDistanceRange] = useState([18, 25]);
+  const [initialInterests, setInitialInterests] = useState([]);
+
+  const [form, setForm] = useState({
+    education_id: "",
+    profession_id: "",
+    language_id: "",
+    status_id: "",
+    religion_id: "",
+    city_id: "",
+    drinking_id: "",
+    smoking_id: "",
+    eating_id: "",
+    match_intent: "LoveCommitment"
+  });
+
+  const [about, setAbout] = useState("");
   const [distanceRange, setDistanceRange] = useState([18, 25]);
+  const [selectedInterests, setSelectedInterests] = useState([]);
+  const [fullName, setFullName] = useState("");
+  const [userName, setUserName] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [email, setEmail] = useState("");
+  const [dropdowns, setDropdowns] = useState([]);
+  const [locations, setLocations] = useState([]);
+
+  const interests = {
+    Sports: ["Cricket", "Football", "Swimming"],
+    Entertainment: ["Comedy", "Movies", "Music"],
+    Wellness: ["Outdoors", "Fitness", "Meditation", "Weights"],
+    Health: ["Health", "Life", "Weddings", "Dating", "Grownuping", "Relationships"]
+  };
+
+  useEffect(() => {
+    const storedUserData = JSON.parse(localStorage.getItem("user_Data"));
+    const userId = storedUserData?.id;
+
+    if (userId) {
+      // Fetch user info
+      axiosMain.get(`/users/${userId}/info`)
+        .then((res) => {
+          const user = res.data;
+
+          const transformedUserData = {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            username: user.username,
+            gender: user.gender,
+            dob: user.dob,
+            url: user.url,
+            education_id: user.educations?.id || "",
+            profession_id: user.professions?.id || "",
+            language_id: user.languages?.id || "",
+            status_id: user.statuses?.id || "",
+            religion_id: user.religions?.id || "",
+            drinking_id: user.drinking?.id || "",
+            smoking_id: user.smoking?.id || "",
+            eating_id: user.eating?.id || "",
+            city_id: user.city?.id || "",
+            about: user.about || "",
+            cityAndCountryName: user.city,
+            country_code: user.country_code,
+            number: user.number,
+            token: storedUserData?.token
+          };
+
+          const formInitial = {
+            education_id: transformedUserData.education_id,
+            profession_id: transformedUserData.profession_id,
+            language_id: transformedUserData.language_id,
+            status_id: transformedUserData.status_id,
+            religion_id: transformedUserData.religion_id,
+            city_id: transformedUserData.city_id,
+            drinking_id: transformedUserData.drinking_id,
+            smoking_id: transformedUserData.smoking_id,
+            eating_id: transformedUserData.eating_id,
+            match_intent: "LoveCommitment"
+          };
+
+          setUserData(transformedUserData);
+          setForm(formInitial);
+          setInitialForm(formInitial);
+          setAbout(transformedUserData.about || "");
+          setInitialAbout(transformedUserData.about || "");
+          setFullName(transformedUserData.name || "");
+          setUserName(transformedUserData.username || "");
+          setDob(transformedUserData.dob || "");
+          setGender(transformedUserData.gender || "");
+          setEmail(transformedUserData.email || "");
+          setMobile(`+${transformedUserData.country_code} ${transformedUserData.number}` || "");
+          setInitialDistanceRange([18, 25]); // If backend sends actual distance, replace this line
+        });
+
+      // Fetch and format selected interests
+      axiosMain.get(`/users/${userId}/interests`, {
+        headers: { token: storedUserData?.token }
+      })
+        .then((res) => {
+          const apiInterests = res.data?.interests || [];
+          const formattedInterests = apiInterests.map((item) => {
+            const category = item.interest?.category?.e_name;
+            const interest = item.interest?.e_name;
+            return `${category}-${interest}`;
+          });
+          setSelectedInterests(formattedInterests);
+          setInitialInterests(formattedInterests);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch interests:", err);
+          setSelectedInterests([]);
+          setInitialInterests([]);
+        });
+    }
+  }, []);
+
+
+  useEffect(() => {
+    axiosMain.get("/dropdowns").then((res) => {
+      setDropdowns(res.data);
+    });
+
+    axiosMain.get("/locations").then((res) => {
+      setLocations(res.data);
+    });
+  }, []);
+
+  const token = userData?.token;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
 
-    const formData = {
+    const profileData = {
       name: fullName,
       username: userName,
       dob,
-      gender,
+      gender
     };
 
+    const formChanged = JSON.stringify(form) !== JSON.stringify(initialForm);
+    const profileChanged = (
+      profileData.name !== userData.name ||
+      profileData.username !== userData.username ||
+      profileData.dob !== userData.dob ||
+      profileData.gender !== userData.gender
+    );
+    const aboutChanged = about !== initialAbout;
+    const interestsChanged = JSON.stringify(selectedInterests) !== JSON.stringify(initialInterests);
+    const rangeChanged = JSON.stringify(distanceRange) !== JSON.stringify(initialDistanceRange);
+
     try {
-      const res = await axiosMain.put(`/profile`, formData, {
-        headers: {
-          token,
-          "Content-Type": "application/json",
-        },
-      });
+      if (profileChanged) {
+        await axiosMain.put(`/profile`, profileData, {
+          headers: {
+            token,
+            "Content-Type": "application/json"
+          }
+        });
 
-      console.log("Profile updated:", res.data);
+        const updatedUserData = { ...userData, ...profileData };
+        localStorage.setItem("user_Data", JSON.stringify(updatedUserData));
+        setUserData(updatedUserData);
+      }
 
-      // Update only 4 fields in localStorage
-      const updatedUserData = {
-        ...userData,
-        name: fullName,
-        username: userName,
-        dob: dob,
-        gender: gender,
-      };
-      localStorage.setItem("user_Data", JSON.stringify(updatedUserData));
+      if (formChanged || aboutChanged ) {
+        await axiosMain.put("/personalise", {
+          ...form,
+          about,
+          interests: selectedInterests,
+          distance_range: distanceRange,
+          match_intent: "LoveCommitment"
+        }, {
+          headers: {
+            token,
+            "Content-Type": "application/json"
+          }
+        });
+      }
+
+      setInitialForm(form);
+      setInitialAbout(about);
+      setInitialDistanceRange(distanceRange);
+      setInitialInterests(selectedInterests);
 
     } catch (error) {
       console.error("Update failed:", error);
@@ -122,34 +276,19 @@ function PersonalInfoFormData() {
     }
   };
 
-
-
-  const interests = {
-    Sports: ["Cricket", "Football", "Swimming"],
-    Entertainment: ["Comedy", "Movies", "Music"],
-    Wellness: ["Outdoors", "Fitness", "Meditation", "Weights"],
-    Health: [
-      "Health",
-      "Life",
-      "Weddings",
-      "Dating",
-      "Grownuping",
-      "Relationships",
-    ],
+  const optionsFor = (keyword) => {
+    const cat = dropdowns.find((d) => d.name.toLowerCase().includes(keyword));
+    return cat?.sub_categories || [];
   };
 
   const handleInterestClick = (category, interest) => {
-    // Handle selecting/deselecting interests
     const interestString = `${category}-${interest}`;
     if (selectedInterests.includes(interestString)) {
-      setSelectedInterests(
-        selectedInterests.filter((item) => item !== interestString)
-      );
+      setSelectedInterests(selectedInterests.filter((item) => item !== interestString));
     } else if (selectedInterests.length < 5) {
       setSelectedInterests([...selectedInterests, interestString]);
     }
   };
-
 
 
   return (
@@ -232,7 +371,16 @@ function PersonalInfoFormData() {
         </div>
         <div>
           <label className="block text-sm mb-1">Location*</label>
-          <input className="input" placeholder="Enter your Location" />
+          <input
+            className="input"
+            placeholder="Enter your Location"
+            value={
+              userData.cityAndCountryName && userData.cityAndCountryName.country
+                ? `${userData.cityAndCountryName.e_name}, ${userData.cityAndCountryName.country.e_name}`
+                : ""
+            }
+            readOnly
+          />
         </div>
       </div>
 
@@ -241,20 +389,88 @@ function PersonalInfoFormData() {
       {/* Section 2 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {[
-          "Education",
-          "Profession",
-          "Language",
-          "Status",
-          "Religion",
-          "Location",
-        ].map((label, i) => (
-          <div key={i}>
-            <label className="block text-sm   mb-1">Select Your {label}</label>
-            <select className="input">
-              <option>{`Select Your ${label}`}</option>
+          { label: "Education", name: "education_id", key: "education" },
+          { label: "Profession", name: "profession_id", key: "profession" },
+          { label: "Language", name: "language_id", key: "language" },
+          { label: "Status", name: "status_id", key: "status" },
+          { label: "Religion", name: "religion_id", key: "religion" },
+          { label: "Location", name: "city_id", key: "city" },
+        ].map(({ label, name, key }) => (
+          <div key={name}>
+            <label className="block text-sm mb-1">
+              Select Your {label}
+              <span className="text-red-500">*</span>
+            </label>
+            <select
+              name={name}
+              value={form[name]}
+              onChange={handleChange}
+              className="input"
+            >
+              <option value="">{`Select Your ${label}`}</option>
+              {key === "city"
+                ? locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.e_name}
+                  </option>
+                ))
+                : optionsFor(key).map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.e_name}
+                  </option>
+                ))}
             </select>
           </div>
         ))}
+      </div>
+
+      {/* Section 3 */}
+      <span>Life Style</span>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {[
+          { label: "Drinking", name: "drinking_id", key: "drinking" },
+          { label: "Smoking", name: "smoking_id", key: "smoking" },
+          { label: "Eating", name: "eating_id", key: "eating" },
+        ].map(({ label, name, key }) => (
+          <div key={name}>
+            <label className="block text-sm mb-1">
+              {label}
+              <span className="text-red-500">*</span>
+            </label>
+            <select
+              name={name}
+              value={form[name]}
+              onChange={handleChange}
+              className="input"
+            >
+              <option value="">{`Select Your ${label}`}</option>
+              {key === "city"
+                ? locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.e_name}
+                  </option>
+                ))
+                : optionsFor(key).map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.e_name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        ))}
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="block text-sm   mb-1">About Yourself</label>
+        <textarea
+          className="input"
+          placeholder="Write a brief description (300 characters)"
+          rows="3"
+          value={about}
+          onChange={(e) => setAbout(e.target.value)}
+        />
       </div>
 
       {/* Your Interest Section */}
@@ -295,15 +511,7 @@ function PersonalInfoFormData() {
         </div>
       </div>
 
-      {/* Description */}
-      <div>
-        <label className="block text-sm   mb-1">About Yourself</label>
-        <textarea
-          className="input"
-          placeholder="Write a brief description (300 characters)"
-          rows="3"
-        />
-      </div>
+
 
       {/* Submit Button */}
       <button
