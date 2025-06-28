@@ -3,7 +3,7 @@ import { Paperclip, Phone, Send } from "lucide-react";
 import userImg from "../../assets/bgImage.png";
 import nullimage from "../../assets/null image.png";
 import videoCall from "../../assets/Video-Call-Button.svg";
-// import Call from "../../assets/call Button.svg";
+import Call from "../../assets/call Button.svg";
 import axiosInspector from "../../http/axiosMain.js";
 import EmojiPicker from "emoji-picker-react";
 // import AgoraRTC from "agora-rtc-sdk-ng";
@@ -67,6 +67,12 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId }) {
   const [pendingFiles, setPendingFiles] = useState([]);
   const containerRef = useRef(null);
   const { token } = JSON.parse(localStorage.getItem("user_Data") || "{}");
+
+  const voiceRef = useRef();
+
+  const handleVoiceCall = () => {
+    voiceRef.current?.startCall();
+  };
 
   useEffect(() => {
     if (!loading && containerRef.current) {
@@ -241,19 +247,21 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId }) {
         </div>
 
         <div className="flex gap-2 items-center">
-          {/* <button
+          <button
             className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(108.95deg, rgba(76, 200, 42, 0.16) -1.3%,]"
             onClick={() => handleVoiceCall()}
           >
-            
+
             <img src={Call} alt="Call Button" />
-          </button> */}
+          </button>
 
           <VoiceCallComponent
+            ref={voiceRef}
             peerId={resiverDetail?.chat_room_id}
             userId={userId}
             receiverId={resiverDetail?.user?.id}
             isVideo={false}
+            token={token}
           />
 
           {/* <VoiceCallComponent
