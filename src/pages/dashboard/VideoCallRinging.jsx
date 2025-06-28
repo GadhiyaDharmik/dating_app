@@ -5,7 +5,7 @@ import MicOff from "@mui/icons-material/MicOff";
 import VolumeUp from "@mui/icons-material/VolumeUp";
 import VolumeOff from "@mui/icons-material/VolumeOff";
 import CallEnd from "@mui/icons-material/CallEnd";
-import bgimg from "../../assets/bgimage.png";
+import bgimg from "../../assets/bgImage.png";
 import { PhoneCall } from "lucide-react";
 import VideoCallStart from "./VideoCallStart";
 
