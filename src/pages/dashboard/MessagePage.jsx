@@ -8,6 +8,8 @@ import axiosInspector from "../../http/axiosMain.js";
 import EmojiPicker from "emoji-picker-react";
 // import AgoraRTC from "agora-rtc-sdk-ng";
 import VoiceCallComponent from "./VoiceCallComponent.jsx";
+import VideoCallScreen from "./VideoCallRinging.jsx";
+import VideoCallStart from "./VideoCallStart.jsx";
 
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/chat/";
 
@@ -550,6 +552,9 @@ export default function MessagePage() {
         resiverDetail={resiverDetail}
         userId={userId}
       />
+      {/* <VideoCallScreen/> */}
+      
+    {/* <VideoCallStart/> */}
     </div>
   );
 }

@@ -15,6 +15,10 @@ import HomePage from "../pages/dashboard/HomePage";
 import DashboardLayout from "../layouts/DashboardLayout";
 import MatchesPage from "../pages/dashboard/MatchesPage";
 import PrivateRoute from "./PrivateRoute";
+import VideoCallScreen from "../pages/dashboard/VideoCallRinging";
+import VideoCallStart from "../pages/dashboard/VideoCallStart";
+import SubscriptionPlans from "../pages/SubScriPtion";
+import Faq from "../pages/Faq";
 
 function AppRoutes() {
   return (
@@ -38,7 +42,10 @@ function AppRoutes() {
         <Route path="/profile/ideal-match" element={<IdealMatchPage />} />
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
-
+        <Route path="/subscription" element={<SubscriptionPlans />} />
+        <Route path="/videocallstart" element={<VideoCallScreen />} />
+        <Route path="/videocalling" element={<VideoCallStart />} />
+        <Route path="/helpcenter" element={<Faq />} />
         {/* Protected Routes */}
         <Route
           path="/dashboard/home"
