@@ -124,18 +124,24 @@ import React, {
 } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import axiosInspector from "../../http/axiosMain";
+import VideoCallScreen from "./VideoCallRinging";
+import VideoCallStart from "./VideoCallStart";
 
 const APP_ID = "cb8359241f474aca9597df671df45af1";
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/users/";
-const UserDetail = JSON.parse(localStorage.getItem("userDetail"));
+const UserDetail = JSON.parse(localStorage.getItem("user_Data"));
+
 const VoiceCallComponent = forwardRef(
-  ({ userId, peerId, receiverId, isVideo, token }, ref) => {
+  ({ userId, peerId, receiverId, isVideo, token, callStatus, setCallStatus, receiverDetail }, ref) => {
     const [client] = useState(() =>
       AgoraRTC.createClient({ mode: "rtc", codec: "vp8" })
     );
     const [localTracks, setLocalTracks] = useState([]);
     const [joined, setJoined] = useState(false);
     const [callPopup, setCallPopup] = useState(null);
+    const [isCaller, setIsCaller] = useState(false);
+    const [remoteUsers, setRemoteUsers] = useState([]);
+
     const wsRef = useRef(null);
     const isJoiningRef = useRef(false);
     const channelName = peerId;
@@ -146,29 +152,28 @@ const VoiceCallComponent = forwardRef(
 
       ws.onmessage = async (event) => {
         const data = JSON.parse(event.data);
-        console.log("WS Message Received:", data);
-
         switch (data.type) {
           case "call_invitation":
             if (data.caller_id !== userId) {
               setCallPopup(data);
+              setCallStatus("calling");
             }
             break;
 
           case "call_accepted":
-            // Caller should join when receiver accepts
             if (data.recepient_id === userId) {
-              console.log("You are the receiver, already joined.");
+              console.log("Receiver (you) accepted.");
             } else if (data.caller_id === receiverId) {
               console.log("Receiver accepted. Caller joining call...");
-              joinCall(data.channel_name);
+              setCallStatus("call_accepted");
+              await joinCall(data.channel_name);
             }
             break;
 
           case "call_rejected":
           case "call_ended":
-            alert("Call was declined or ended.");
-            leaveCall();
+            setCallStatus("idle");
+            await leaveCall();
             break;
 
           default:
@@ -205,21 +210,22 @@ const VoiceCallComponent = forwardRef(
         call_type: isVideo ? "video" : "voice",
         channel_name: channelName,
       });
+      setIsCaller(true);
+      setCallStatus("calling");
     };
 
     const acceptCall = async () => {
       setCallPopup(null);
-
       sendSocketMessage({
         type: "call_accepted",
         caller_id: userId,
         caller_name: UserDetail?.name || "Unknown",
         recepient_id: receiverId,
-        call_type: callPopup.call_type,
-        channel_name: callPopup.channel_name,
+        call_type: callPopup?.call_type,
+        channel_name: callPopup?.channel_name,
       });
-
-      await joinCall(callPopup.channel_name);
+      setCallStatus("call_accepted");
+      await joinCall(callPopup?.channel_name);
     };
 
     const rejectCall = () => {
@@ -228,10 +234,12 @@ const VoiceCallComponent = forwardRef(
         caller_id: userId,
         caller_name: UserDetail?.name || "Unknown",
         recepient_id: receiverId,
-        call_type: callPopup.call_type,
-        channel_name: callPopup.channel_name,
+        call_type: callPopup?.call_type,
+        channel_name: callPopup?.channel_name,
       });
       setCallPopup(null);
+      setCallStatus("idle");
+      leaveCall();
     };
 
     const joinCall = async (channel) => {
@@ -248,7 +256,6 @@ const VoiceCallComponent = forwardRef(
         await client.join(APP_ID, channel, rtcToken, userId);
 
         let micTrack, camTrack;
-
         if (isVideo) {
           [micTrack, camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
           await client.publish([micTrack, camTrack]);
@@ -262,20 +269,22 @@ const VoiceCallComponent = forwardRef(
         }
 
         setJoined(true);
+        setCallStatus("ongoing");
 
         client.on("user-published", async (user, mediaType) => {
           await client.subscribe(user, mediaType);
+          setRemoteUsers((prev) => {
+            const exists = prev.find((u) => u.uid === user.uid);
+            return exists ? prev : [...prev, user];
+          });
 
           if (mediaType === "video") {
             const remoteContainer = document.createElement("div");
-            remoteContainer.id = `${user.uid}`;
+            remoteContainer.id = user.uid;
             remoteContainer.style.width = "100%";
             remoteContainer.style.height = "300px";
-            const remoteVideos = document.getElementById("remote-videos");
-            if (remoteVideos) {
-              remoteVideos.appendChild(remoteContainer);
-              user.videoTrack.play(remoteContainer);
-            }
+            document.getElementById("remote-videos")?.appendChild(remoteContainer);
+            user.videoTrack.play(remoteContainer);
           }
 
           if (mediaType === "audio" && user.audioTrack) {
@@ -286,13 +295,14 @@ const VoiceCallComponent = forwardRef(
         });
 
         client.on("user-unpublished", (user, mediaType) => {
-          const remoteContainer = document.getElementById(`${user.uid}`);
-          if (remoteContainer) remoteContainer.remove();
+          if (mediaType === "video") {
+            const remoteContainer = document.getElementById(user.uid);
+            if (remoteContainer) remoteContainer.remove();
+          }
         });
 
         client.on("user-left", (user) => {
-          const remoteContainer = document.getElementById(`${user.uid}`);
-          if (remoteContainer) remoteContainer.remove();
+          setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
         });
       } catch (err) {
         console.error("Join error:", err);
@@ -307,72 +317,101 @@ const VoiceCallComponent = forwardRef(
         track.close();
       }
 
+      client.removeAllListeners();
       await client.leave();
-      setLocalTracks([]);
-      setJoined(false);
 
       const remoteVideos = document.getElementById("remote-videos");
       if (remoteVideos) remoteVideos.innerHTML = "";
+
+      setCallStatus("idle");
+      setLocalTracks([]);
+      setJoined(false);
+      setCallPopup(null);
+      setIsCaller(false);
     };
 
     useImperativeHandle(ref, () => ({
       startCall,
+      leaveCall,
+      mute: () => localTracks[0]?.setEnabled(false),
+      unmute: () => localTracks[0]?.setEnabled(true),
     }));
 
     return (
       <div>
-        {joined && (
-          <button
-            onClick={() => {
-              sendSocketMessage({
-                type: "call_ended",
-                caller_id: userId,
-                recepient_id: receiverId,
-                call_type: isVideo ? "video" : "voice",
-                channel_name: channelName,
-              });
-              leaveCall();
-            }}
-            className="bg-red-500 text-white px-3 py-1 rounded"
-          >
-            End Call
-          </button>
-        )}
-
-        {joined && (
-          <div className="mt-2">
-            <h2 className="font-bold text-lg mb-4">
-              Agora RTC Video Call - {userId}
-            </h2>
-            <div
-              id="local-video"
-              style={{ width: "100%", height: "300px", backgroundColor: "#000" }}
-            />
-            <div id="remote-videos" className="mt-4" />
-          </div>
-        )}
-
-        {callPopup && (
-          <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded shadow-md text-center">
-              <h2 className="text-xl font-semibold mb-4">
-                {callPopup.caller_name} is calling you...
-              </h2>
-              <div className="space-x-4">
-                <button
-                  onClick={acceptCall}
-                  className="bg-green-500 px-4 py-2 text-white rounded"
-                >
-                  Accept
-                </button>
-                <button
-                  onClick={rejectCall}
-                  className="bg-red-500 px-4 py-2 text-white rounded"
-                >
-                  Reject
-                </button>
-              </div>
+        {/* {isVideo && (callPopup || callStatus === "call_accepted" || callStatus === "ongoing") && (
+          <div className="fixed top-0 left-0 py-2 w-full h-full bg-[#000000b8] flex items-center justify-center z-50">
+            <div className="bg-transparent p-6 rounded-2xl w-full h-full m-8 flex flex-col items-center justify-center">
+              <VideoCallStart
+                onEndCall={() => {
+                  sendSocketMessage({
+                    type: "call_ended",
+                    caller_id: userId,
+                    recepient_id: receiverId,
+                    call_type: isVideo ? "video" : "voice",
+                    channel_name: channelName,
+                  });
+                  leaveCall();
+                }}
+                onToggleMute={(muted) => {
+                  localTracks[0]?.setEnabled(!muted);
+                }}
+                type={callPopup?.type}
+                isCaller={isCaller}
+                receiverDetail={receiverDetail}
+                callStatus={callStatus}
+                acceptCall={acceptCall}
+                rejectCall={rejectCall}
+                isVideo={isVideo}
+                localStream={localTracks.length > 0 ? localTracks : null}
+                remoteStream={
+                  remoteUsers.length > 0 && remoteUsers[0]?.videoTrack
+                    ? [remoteUsers[0].videoTrack]
+                    : null
+                }
+              />
             </div>
+          </div>
+        )} */}
+
+        {((callPopup || callStatus !== "idle")) && (
+          <div className="fixed top-0 left-0 py-2 w-full h-full bg-[#000000b8] bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+            <div
+              className="bg-transparent p-6 rounded-2xl shadow-xl w-full h-full m-8 flex flex-col items-center justify-center"
+              style={{ animation: "slideUp 0.4s ease-out" }}
+            >
+              <VideoCallScreen
+                onEndCall={() => {
+                  sendSocketMessage({
+                    type: "call_ended",
+                    caller_id: userId,
+                    recepient_id: receiverId,
+                    call_type: isVideo ? "video" : "voice",
+                    channel_name: channelName,
+                  });
+                  leaveCall();
+                }}
+                userId={userId}
+                type={callPopup?.type}
+                isCaller={isCaller}
+                receiverDetail={receiverDetail}
+                callStatus={callStatus}
+                acceptCall={acceptCall}
+                rejectCall={rejectCall}
+                isVideo={isVideo}
+                onToggleMute={(muted) => {
+                  localTracks[0]?.setEnabled(!muted);
+                }}
+              />
+            </div>
+            <style>
+              {`
+                @keyframes slideUp {
+                  0% { transform: translateY(100%); opacity: 0; }
+                  100% { transform: translateY(0); opacity: 1; }
+                }
+              `}
+            </style>
           </div>
         )}
       </div>

@@ -1,16 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { IconButton, Avatar } from "@mui/material";
+import { IconButton } from "@mui/material";
 import Mic from "@mui/icons-material/Mic";
 import MicOff from "@mui/icons-material/MicOff";
 import VolumeUp from "@mui/icons-material/VolumeUp";
 import VolumeOff from "@mui/icons-material/VolumeOff";
 import CallEnd from "@mui/icons-material/CallEnd";
-import bgimg from "../../assets/bgimage.png"; // ✅ Must include extension
+import bgimg from "../../assets/bgimage.png";
+import { PhoneCall } from "lucide-react";
+import VideoCallStart from "./VideoCallStart";
 
-export default function VideoCallScreen() {
+export default function VideoCallScreen({
+  onEndCall,
+  onToggleMute,
+  type,
+  acceptCall,
+  rejectCall,
+  callStatus, isCaller, receiverDetail,
+  isVideo,
+  localStream,
+  remoteStream
+}) {
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
+  const [videoCallStarted, setVideoCallStarted] = useState(false);
+  const UserDetail = JSON.parse(localStorage.getItem("user_Data"));
+
+
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -18,6 +34,14 @@ export default function VideoCallScreen() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+
+  useEffect(() => {
+    if (callStatus === "ongoing" && isVideo) {
+      setVideoCallStarted(true);
+    }
+  }, [callStatus, isVideo]);
+
 
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -29,73 +53,157 @@ export default function VideoCallScreen() {
 
   return (
     <div
-      className="w-full min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-cover bg-center bg-no-repeat"
+      className="w-full h-full rounded-2xl flex flex-col items-center justify-center px-4 py-8 bg-cover bg-center bg-no-repeat"
       style={{
         backgroundImage: `url(${bgimg})`,
       }}
     >
-      {/* Avatar with blue ring */}
-      {/* Avatar with perfect circular gradient and glow */}
+      {(callStatus === "calling" && !isCaller) && <p className="text-lg font-semibold text-black mb-5">Incoming {isVideo ? "Video" : "Audio"} Call</p>}
+      {/* Avatar with glowing ring */}
       <div className="relative flex items-center justify-center w-48 h-48 overflow-visible">
-        {/* Outer Glow - soft and perfectly round */}
         <div className="absolute inset-0 z-0">
           <div className="w-full h-full rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 blur-2xl opacity-60"></div>
         </div>
 
-        {/* Gradient Ring */}
+
         <div className="relative z-10 w-40 h-40 rounded-full bg-gradient-to-tr from-[#00c6ff] to-[#0072ff] p-[6px] shadow-md">
-          {/* Inner Black Circle */}
           <div className="rounded-full w-full h-full flex items-center justify-center p-[4px]">
-            {/* Avatar */}
             <img
-              src="https://randomuser.me/api/portraits/men/75.jpg"
+              src={callStatus === "calling" && isCaller ? UserDetail?.url || "https://randomuser.me/api/portraits/men/75.jpg" : receiverDetail?.user?.url || "https://randomuser.me/api/portraits/men/75.jpg"}
               alt="User"
               className="rounded-full w-full h-full object-cover"
             />
           </div>
         </div>
 
-        {/* Online Status Dot */}
         <div className="absolute bottom-3 right-3 w-5 h-5 bg-green-500 rounded-full border-4 border-white z-20"></div>
       </div>
 
-      {/* Name and Duration */}
-      {/* Name and Duration - with spacing below avatar */}
-      <div className="mt-7 text-center">
-        <h2 className="text-xl font-bold text-black">Michael Dam</h2>
-        <p className="text-gray-600 mt-1 text-sm">
-          Call Duration: {formatDuration(callDuration)}
-        </p>
-      </div>
+      {callStatus === "calling" && isCaller ? (
+        <>
+          <h2 className="text-xl font-bold text-black">{UserDetail?.name || "Michael Dam"}</h2>
 
-      {/* Controls */}
-      <div className="mt-8 bg-white rounded-full px-6 py-3 flex items-center justify-between gap-10 shadow-md w-80 sm:w-96 md:w-[400px]">
-        {/* Volume */}
-        <IconButton onClick={() => setIsSpeakerOn(!isSpeakerOn)}>
-          {isSpeakerOn ? (
-            <VolumeUp className="text-cyan-600" />
-          ) : (
-            <VolumeOff className="text-cyan-600" />
-          )}
-        </IconButton>
+          <div className="mt-4 text-center">
+            <p className="text-lg font-semibold text-black">Calling...</p>
+          </div>
+        </>
+      ) : (
+        <>
+          <h2 className="text-xl font-bold text-black">{receiverDetail?.user?.name || "Michael Dam"}</h2>
 
-        {/* Mic */}
-        <IconButton onClick={() => setIsMuted(!isMuted)}>
-          {isMuted ? (
-            <MicOff className="text-cyan-600" />
-          ) : (
-            <Mic className="text-cyan-600" />
-          )}
-        </IconButton>
+          {type !== "call_invitation" && (<div className="mt-7 text-center">
 
-        {/* End Call */}
-        <IconButton
-          onClick={() => alert("Call Ended")}
-          className="!bg-red-500 hover:!bg-red-600 !text-white !w-12 !h-12"
-        >
-          <CallEnd />
-        </IconButton>
-      </div>
+            <p className="text-gray-600 mt-1 text-sm">
+              Call Duration: {formatDuration(callDuration)}
+            </p>
+          </div>)}
+          {/* Controls */}
+          {isVideo ?
+
+            <>
+              {(type !== "call_invitation") && (<VideoCallStart
+                onEndCall={onEndCall}
+                onToggleMute={onToggleMute}
+                localStream={localStream}
+                remoteStream={remoteStream} />)}
+              {/* // You can pass remoteUsers, localTrack if available */}
+              <div className="mt-8 bg-white rounded-full px-6 py-3 flex items-center justify-between gap-10 shadow-md w-80 sm:w-96 md:w-[400px]">
+                {(type !== "call_invitation") && (
+                  <>
+                    <IconButton onClick={() => setIsSpeakerOn(!isSpeakerOn)}>
+                      {isSpeakerOn ? (
+                        <VolumeUp className="text-cyan-600" />
+                      ) : (
+                        <VolumeOff className="text-cyan-600" />
+                      )}
+                    </IconButton>
+
+                    <IconButton
+                      onClick={() => {
+                        const newMuted = !isMuted;
+                        setIsMuted(newMuted);
+                        onToggleMute?.(newMuted);
+                      }}
+                    >
+                      {isMuted ? (
+                        <MicOff className="text-cyan-600" />
+                      ) : (
+                        <Mic className="text-cyan-600" />
+                      )}
+                    </IconButton>
+                  </>
+                )}
+
+                {type === "call_invitation" && (
+                  <IconButton
+                    onClick={acceptCall}
+                    className="!bg-green-500 hover:!bg-green-600 !text-white !w-12 !h-12"
+                  >
+                    <PhoneCall />
+                  </IconButton>
+                )}
+
+                <IconButton
+                  onClick={() => {
+                    onEndCall?.();
+                    rejectCall?.();
+                  }}
+                  className="!bg-red-500 hover:!bg-red-600 !text-white !w-12 !h-12"
+                >
+                  <CallEnd />
+                </IconButton>
+              </div></> :
+            <div className="mt-8 bg-white rounded-full px-6 py-3 flex items-center justify-between gap-10 shadow-md w-80 sm:w-96 md:w-[400px]">
+              {(type !== "call_invitation") && (
+                <>
+                  <IconButton onClick={() => setIsSpeakerOn(!isSpeakerOn)}>
+                    {isSpeakerOn ? (
+                      <VolumeUp className="text-cyan-600" />
+                    ) : (
+                      <VolumeOff className="text-cyan-600" />
+                    )}
+                  </IconButton>
+
+                  <IconButton
+                    onClick={() => {
+                      const newMuted = !isMuted;
+                      setIsMuted(newMuted);
+                      onToggleMute?.(newMuted);
+                    }}
+                  >
+                    {isMuted ? (
+                      <MicOff className="text-cyan-600" />
+                    ) : (
+                      <Mic className="text-cyan-600" />
+                    )}
+                  </IconButton>
+                </>
+              )}
+
+              {type === "call_invitation" && (
+                <IconButton
+                  onClick={acceptCall}
+                  className="!bg-green-500 hover:!bg-green-600 !text-white !w-12 !h-12"
+                >
+                  <PhoneCall />
+                </IconButton>
+              )}
+
+              <IconButton
+                onClick={() => {
+                  onEndCall?.();
+                  rejectCall?.();
+                }}
+                className="!bg-red-500 hover:!bg-red-600 !text-white !w-12 !h-12"
+              >
+                <CallEnd />
+              </IconButton>
+            </div>}
+
+        </>
+      )}
+
+
     </div>
   );
 }

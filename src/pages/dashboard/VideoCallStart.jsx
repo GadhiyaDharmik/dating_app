@@ -1,49 +1,95 @@
-import React from "react";
+// VideoCallStart.jsx (updated based on your structure)
+import React, { useEffect } from "react";
 import { IconButton } from "@mui/material";
-import { Mic, PhoneMissed, RefreshCcw, Video, Volume1 } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  PhoneMissed,
+  RefreshCcw,
+  Video,
+  VideoOff,
+  Volume1,
+} from "lucide-react";
 
-export default function VideoCallStart() {
+const VideoCallStart = ({
+  onEndCall,
+  onToggleMute,
+  localStream,
+  remoteStream,
+}) => {
+  useEffect(() => {
+    // Play local video
+    if (Array.isArray(localStream)) {
+      const videoTrack = localStream.find((track) => track.getTrack && track.getTrack().kind === "video");
+      if (videoTrack) {
+        const localContainer = document.getElementById("local-video");
+        videoTrack.play(localContainer);
+      }
+    }
+
+    // Play remote video
+    if (Array.isArray(remoteStream)) {
+      const videoTrack = remoteStream.find((track) => track.getTrack && track.getTrack().kind === "video");
+      if (videoTrack) {
+        const remoteContainer = document.getElementById("remote-videos");
+        remoteContainer.innerHTML = ""; // Clear old tracks if any
+        const div = document.createElement("div");
+        div.style.width = "100%";
+        div.style.height = "300px";
+        remoteContainer.appendChild(div);
+        videoTrack.play(div);
+      }
+    }
+  }, [localStream, remoteStream]);
+
   return (
-    <div className="w-full h-screen relative bg-black overflow-hidden">
-      {/* Full screen video (caller) */}
-      <img
-        src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=1920&q=80"
-        alt="Caller"
-        className="w-full h-full object-cover"
+    <div className="flex flex-col items-center w-full h-full">
+      <div
+        id="local-video"
+        style={{ width: "100%", height: "300px", backgroundColor: "#000" }}
+        className="rounded-md overflow-hidden"
+      />
+      <div
+        id="remote-videos"
+        className="mt-4 w-full rounded-md overflow-hidden"
+        style={{ minHeight: "300px", backgroundColor: "#000" }}
       />
 
-      {/* Self view (bottom right) */}
-      <div className="absolute bottom-6 right-6 w-32 h-40 rounded-lg overflow-hidden shadow-lg border-2 border-white z-20">
-        <img
-          src="https://randomuser.me/api/portraits/men/75.jpg"
-          alt="Self"
-          className="w-full h-full object-cover"
-        />
-      </div>
-
-      {/* Control Panel (center bottom) */}
-      {/* Control Panel */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-full px-6 py-2 flex items-center justify-between gap-4 shadow-md">
+      {/* Controls */}
+      <div className="mt-6 bg-white rounded-full px-6 py-3 flex items-center justify-between gap-6 shadow-md">
         <IconButton className="text-cyan-600">
-          <Volume1 color="#00A3E0" size={32} />{" "}
+          <Volume1 size={32} />
+        </IconButton>
+
+        <IconButton className="text-cyan-600" onClick={() => onToggleMute?.(false)}>
+          <Mic size={32} />
+        </IconButton>
+
+        <IconButton className="text-cyan-600" onClick={() => onToggleMute?.(true)}>
+          <MicOff size={32} />
         </IconButton>
 
         <IconButton className="text-cyan-600">
-          <Mic color="#00A3E0" size={32} />{" "}
+          <Video size={32} />
         </IconButton>
 
         <IconButton className="text-cyan-600">
-          <Video color="#00A3E0" size={32} />{" "}
+          <VideoOff size={32} />
         </IconButton>
 
         <IconButton className="text-cyan-600">
-          <RefreshCcw color="#00A3E0" size={32} />{" "}
+          <RefreshCcw size={32} />
         </IconButton>
 
-        <IconButton className="!bg-red-500 hover:!bg-red-600 !text-white !w-10 !h-10">
-          <PhoneMissed size={32} color="#FFFFFF" strokeWidth={1.75} />{" "}
+        <IconButton
+          onClick={onEndCall}
+          className="!bg-red-500 hover:!bg-red-600 !text-white !w-10 !h-10"
+        >
+          <PhoneMissed size={32} />
         </IconButton>
       </div>
     </div>
   );
-}
+};
+
+export default VideoCallStart;
