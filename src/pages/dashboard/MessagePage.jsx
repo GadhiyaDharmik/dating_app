@@ -70,14 +70,14 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
   const containerRef = useRef(null);
   const { token } = JSON.parse(localStorage.getItem("user_Data") || "{}");
   const [callStatus, setCallStatus] = useState("idle");
-  const [isVideo, setIsVideo] = useState(false)
+  const [isVideo, setIsVideo] = useState(true)
 
   const voiceRef = useRef();
 
-  const handleVoiceCall = (flag) => {
+  const handleVoiceCall = () => {
     voiceRef.current?.startCall();
     setCallStatus("calling");
-    setIsVideo(flag)
+
   };
 
   useEffect(() => {
@@ -248,7 +248,10 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
         </div>
         <div className="flex gap-2 items-center">
           <button className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(95.88deg,_rgba(255,197,197,0.2)_-2.12%]"
-            onClick={() => handleVoiceCall(true)}
+            onClick={() => {
+              handleVoiceCall()
+              setIsVideo(true)
+            }}
           >
             <img src={videoCall} alt="video call" />
           </button>
@@ -257,7 +260,10 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
         <div className="flex gap-2 items-center">
           <button
             className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(108.95deg, rgba(76, 200, 42, 0.16) -1.3%,]"
-            onClick={() => handleVoiceCall(false)}
+            onClick={() => {
+              setIsVideo(false)
+              handleVoiceCall()
+            }}
           >
 
             <img src={Call} alt="Call Button" />

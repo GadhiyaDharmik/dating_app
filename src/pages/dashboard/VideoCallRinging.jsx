@@ -106,53 +106,30 @@ export default function VideoCallScreen({
                 onToggleMute={onToggleMute}
                 localStream={localStream}
                 remoteStream={remoteStream} />)}
+
               {/* // You can pass remoteUsers, localTrack if available */}
-              <div className="mt-8 bg-white rounded-full px-6 py-3 flex items-center justify-between gap-10 shadow-md w-80 sm:w-96 md:w-[400px]">
-                {(type !== "call_invitation") && (
-                  <>
-                    <IconButton onClick={() => setIsSpeakerOn(!isSpeakerOn)}>
-                      {isSpeakerOn ? (
-                        <VolumeUp className="text-cyan-600" />
-                      ) : (
-                        <VolumeOff className="text-cyan-600" />
-                      )}
-                    </IconButton>
-
+              {(type === "call_invitation" && isVideo) && (
+                <div className="mt-8 bg-white rounded-full px-6 py-3 flex items-center justify-between gap-10 shadow-md w-80 sm:w-96 md:w-[400px]">
+                  {type === "call_invitation" && (
                     <IconButton
-                      onClick={() => {
-                        const newMuted = !isMuted;
-                        setIsMuted(newMuted);
-                        onToggleMute?.(newMuted);
-                      }}
+                      onClick={acceptCall}
+                      className="!bg-green-500 hover:!bg-green-600 !text-white !w-12 !h-12"
                     >
-                      {isMuted ? (
-                        <MicOff className="text-cyan-600" />
-                      ) : (
-                        <Mic className="text-cyan-600" />
-                      )}
+                      <PhoneCall />
                     </IconButton>
-                  </>
-                )}
+                  )}
 
-                {type === "call_invitation" && (
                   <IconButton
-                    onClick={acceptCall}
-                    className="!bg-green-500 hover:!bg-green-600 !text-white !w-12 !h-12"
+                    onClick={() => {
+                      onEndCall?.();
+                      rejectCall?.();
+                    }}
+                    className="!bg-red-500 hover:!bg-red-600 !text-white !w-12 !h-12"
                   >
-                    <PhoneCall />
+                    <CallEnd />
                   </IconButton>
-                )}
-
-                <IconButton
-                  onClick={() => {
-                    onEndCall?.();
-                    rejectCall?.();
-                  }}
-                  className="!bg-red-500 hover:!bg-red-600 !text-white !w-12 !h-12"
-                >
-                  <CallEnd />
-                </IconButton>
-              </div></> :
+                </div>)}
+            </> :
             <div className="mt-8 bg-white rounded-full px-6 py-3 flex items-center justify-between gap-10 shadow-md w-80 sm:w-96 md:w-[400px]">
               {(type !== "call_invitation") && (
                 <>
@@ -198,7 +175,8 @@ export default function VideoCallScreen({
               >
                 <CallEnd />
               </IconButton>
-            </div>}
+            </div>
+          }
 
         </>
       )}

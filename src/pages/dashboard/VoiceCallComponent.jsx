@@ -172,8 +172,10 @@ const VoiceCallComponent = forwardRef(
 
           case "call_rejected":
           case "call_ended":
+            console.log("Call ended by other party");
             setCallStatus("idle");
-            await leaveCall();
+            await leaveCall(); // ✅ ensures camera/mic stops
+            stopAllMediaTracks(localTracks);
             break;
 
           default:
@@ -248,19 +250,19 @@ const VoiceCallComponent = forwardRef(
 
       try {
         const rtcToken = await fetchRTCToken(channel);
-        if (!rtcToken) {
-          alert("Token generation failed.");
-          return;
-        }
-
         await client.join(APP_ID, channel, rtcToken, userId);
 
         let micTrack, camTrack;
+
         if (isVideo) {
           [micTrack, camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
           await client.publish([micTrack, camTrack]);
-          const localVideo = document.getElementById("local-video");
-          if (localVideo) camTrack.play(localVideo);
+
+          const localVideoContainer = document.getElementById("local-video");
+          if (localVideoContainer) {
+            camTrack.play(localVideoContainer);
+          }
+
           setLocalTracks([micTrack, camTrack]);
         } else {
           micTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -269,35 +271,28 @@ const VoiceCallComponent = forwardRef(
         }
 
         setJoined(true);
-        setCallStatus("ongoing");
 
         client.on("user-published", async (user, mediaType) => {
           await client.subscribe(user, mediaType);
-          setRemoteUsers((prev) => {
-            const exists = prev.find((u) => u.uid === user.uid);
-            return exists ? prev : [...prev, user];
-          });
 
           if (mediaType === "video") {
-            const remoteContainer = document.createElement("div");
-            remoteContainer.id = user.uid;
-            remoteContainer.style.width = "100%";
-            remoteContainer.style.height = "300px";
-            document.getElementById("remote-videos")?.appendChild(remoteContainer);
-            user.videoTrack.play(remoteContainer);
+            const remoteVideoContainer = document.getElementById("remote-video");
+            if (remoteVideoContainer) {
+              user.videoTrack.play(remoteVideoContainer);
+            }
           }
 
-          if (mediaType === "audio" && user.audioTrack) {
-            user.audioTrack.play().catch((err) => {
-              console.warn("Audio play failed:", err);
-            });
+          if (mediaType === "audio") {
+            user.audioTrack.play()
           }
+
+          setRemoteUsers((prev) => [...prev, user]);
         });
 
         client.on("user-unpublished", (user, mediaType) => {
           if (mediaType === "video") {
-            const remoteContainer = document.getElementById(user.uid);
-            if (remoteContainer) remoteContainer.remove();
+            const remoteContainer = document.getElementById("remote-video");
+            if (remoteContainer) remoteContainer.innerHTML = "";
           }
         });
 
@@ -311,31 +306,141 @@ const VoiceCallComponent = forwardRef(
       }
     };
 
+    const stopAllMediaTracks = (tracks = []) => {
+      tracks.forEach((track) => {
+        try {
+          if (track) {
+            track.stop();   // stop streaming
+            track.close();  // release hardware (camera/mic)
+          }
+        } catch (err) {
+          console.error("Error stopping media track:", err);
+        }
+      });
+
+      // Optionally clear video containers
+      const localContainer = document.getElementById("local-video");
+      if (localContainer) localContainer.innerHTML = "";
+
+      const remoteContainer = document.getElementById("remote-video");
+      if (remoteContainer) remoteContainer.innerHTML = "";
+    };
+
+
+
+    // const joinCall = async (channel) => {
+    //   if (joined || isJoiningRef.current) return;
+    //   isJoiningRef.current = true;
+
+    //   try {
+    //     const rtcToken = await fetchRTCToken(channel);
+    //     if (!rtcToken) {
+    //       alert("Token generation failed.");
+    //       return;
+    //     }
+
+    //     await client.join(APP_ID, channel, rtcToken, userId);
+
+    //     let micTrack, camTrack;
+    //     if (isVideo) {
+    //       [micTrack, camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+    //       await client.publish([micTrack, camTrack]);
+    //       const localVideo = document.getElementById("local-video");
+    //       if (localVideo) camTrack.play(localVideo);
+    //       setLocalTracks([micTrack, camTrack]);
+    //     } else {
+    //       micTrack = await AgoraRTC.createMicrophoneAudioTrack();
+    //       await client.publish([micTrack]);
+    //       setLocalTracks([micTrack]);
+    //     }
+
+    //     setJoined(true);
+    //     setCallStatus("ongoing");
+
+    //     client.on("user-published", async (user, mediaType) => {
+    //       await client.subscribe(user, mediaType);
+    //       setRemoteUsers((prev) => {
+    //         const exists = prev.find((u) => u.uid === user.uid);
+    //         return exists ? prev : [...prev, user];
+    //       });
+
+    //       if (mediaType === "video") {
+    //         const remoteContainer = document.createElement("div");
+    //         remoteContainer.id = user.uid;
+    //         remoteContainer.style.width = "100%";
+    //         remoteContainer.style.height = "300px";
+    //         document.getElementById("remote-videos")?.appendChild(remoteContainer);
+    //         user.videoTrack.play(remoteContainer);
+    //       }
+
+    //       if (mediaType === "audio" && user.audioTrack) {
+    //         user.audioTrack.play().catch((err) => {
+    //           console.warn("Audio play failed:", err);
+    //         });
+    //       }
+    //     });
+
+    //     client.on("user-unpublished", (user, mediaType) => {
+    //       if (mediaType === "video") {
+    //         const remoteContainer = document.getElementById(user.uid);
+    //         if (remoteContainer) remoteContainer.remove();
+    //       }
+    //     });
+
+    //     client.on("user-left", (user) => {
+    //       setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
+    //     });
+    //   } catch (err) {
+    //     console.error("Join error:", err);
+    //   } finally {
+    //     isJoiningRef.current = false;
+    //   }
+    // };
+
     const leaveCall = async () => {
       for (const track of localTracks) {
         track.stop();
         track.close();
       }
 
-      client.removeAllListeners();
+      const localContainer = document.getElementById("local-video");
+      if (localContainer) localContainer.innerHTML = "";
+
+      const remoteContainer = document.getElementById("remote-video");
+      if (remoteContainer) remoteContainer.innerHTML = "";
+
       await client.leave();
+      client.removeAllListeners();
 
-      const remoteVideos = document.getElementById("remote-videos");
-      if (remoteVideos) remoteVideos.innerHTML = "";
-
-      setCallStatus("idle");
+      // Clean state
       setLocalTracks([]);
+      setRemoteUsers([]);
       setJoined(false);
       setCallPopup(null);
       setIsCaller(false);
+      setCallStatus("idle");
     };
+
 
     useImperativeHandle(ref, () => ({
       startCall,
       leaveCall,
-      mute: () => localTracks[0]?.setEnabled(false),
-      unmute: () => localTracks[0]?.setEnabled(true),
+      mute: () => {
+        // mute mic only
+        const micTrack = localTracks.find((track) => track.getTrackLabel().toLowerCase().includes("microphone"));
+        if (micTrack) micTrack.setEnabled(false);
+      },
+      unmute: () => {
+        const micTrack = localTracks.find((track) => track.getTrackLabel().toLowerCase().includes("microphone"));
+        if (micTrack) micTrack.setEnabled(true);
+      },
+      stopCamera: () => {
+        const camTrack = localTracks.find((track) => track.getTrackLabel().toLowerCase().includes("camera"));
+        if (camTrack) camTrack.setEnabled(false);
+        if (camTrack) camTrack.stop();
+      },
     }));
+
 
     return (
       <div>
@@ -383,12 +488,13 @@ const VoiceCallComponent = forwardRef(
               <VideoCallScreen
                 onEndCall={() => {
                   sendSocketMessage({
-                    type: "call_ended",
+                    type: "call_ended", // ✅ CORRECT
                     caller_id: userId,
                     recepient_id: receiverId,
                     call_type: isVideo ? "video" : "voice",
                     channel_name: channelName,
                   });
+
                   leaveCall();
                 }}
                 userId={userId}
