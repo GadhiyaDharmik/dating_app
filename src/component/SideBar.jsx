@@ -108,7 +108,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="h-screen w-72 bg-[#00A3E0] text-white flex flex-col rounded-r-[30px] shadow-xl">
+    <div className="h-screen w-72 bg-[#00A3E0] text-white flex flex-col rounded-r-[30px] shadow-xl sidebar-con overflow-auto">
       {/* Logo */}
       <div className="flex flex-col items-center pt-6">
         <img src={logo} alt="Logo" className="mb-6" />
@@ -162,7 +162,7 @@ const Sidebar = () => {
       </div>
 
       {/* Scrollable Nav List */}
-      <div className="flex flex-col w-full">
+      <div className="flex flex-col w-full" style={{ padding: "10px 0px 0px 20px" }}>
         {navItems.map((item, index) => (
           <div
             key={index}
@@ -172,14 +172,12 @@ const Sidebar = () => {
                 item.navigate && navigate(item.navigate);
               }
             }}
-            className={`${
-              active === index ? "bg-black/5 rounded-l-2xl" : "text-white/90"
-            } ${active - 1 === index ? "bg-black/5" : ""} ${
-              active + 1 === index ? "bg-black/5" : ""
-            }`}
+            className={`${active === index ? "bg-black/5 rounded-l-2xl" : "text-white/90"
+              } ${active - 1 === index ? "bg-black/5" : ""} ${active + 1 === index ? "bg-black/5" : ""
+              }`}
           >
             <div
-              className={`group flex items-center gap-3 px-4 py-2 cursor-pointer transition-all duration-300 relative overflow-hidden pl-10 shadow-none
+              className={`group flex items-center gap-3 px-4 py-4 cursor-pointer transition-all duration-300 relative overflow-hidden pl-10 shadow-none sidebar-text
           ${active === index ? "rounded-l-2xl" : "bg-[#00A3E0] text-white/90"}
           ${active - 1 === index ? "bg-[#00A3E0] rounded-br-4xl" : ""}
           ${active + 1 === index ? "bg-[#00A3E0] rounded-tr-4xl" : ""}

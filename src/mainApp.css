@@ -13,7 +13,6 @@ button {
 .custom-scroll::-webkit-scrollbar {
   width: 6px;
   display: none;
-
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {
@@ -109,4 +108,20 @@ button {
   height: 35px;
 }
 
+.sidebar-con {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
 
+.sidebar-con::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
+}
+
+.sidebar-text {
+  /* Appearance: 100% (assuming this refers to scale or size) */
+  font-size: 16px; /* Typography: 16px */
+  font-family: "Rubik", sans-serif; /* Typography: Rubik font */
+  font-weight: 600; /* Typography: SemiBold (600 is a common value for SemiBold) */
+  color: white; /* Fill: White */
+  /* Auto line height is not explicitly set, so it will use the browser default */
+}
