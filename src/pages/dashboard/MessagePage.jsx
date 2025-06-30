@@ -10,6 +10,7 @@ import EmojiPicker from "emoji-picker-react";
 import VoiceCallComponent from "./VoiceCallComponent.jsx";
 import VideoCallScreen from "./VideoCallRinging.jsx";
 import VideoCallStart from "./VideoCallStart.jsx";
+import axios from "axios";
 
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/chat/";
 
@@ -63,15 +64,17 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
   );
 }
 
-function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceCallFunc, handleVideoCallFunc }) {
+function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceCallFunc, handleVideoCallFunc
+  , setCurrentRoom, selectedId, setSelectedId, setLoading, setRooms }) {
   const [input, setInput] = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [pendingFiles, setPendingFiles] = useState([]);
   const containerRef = useRef(null);
   const { token } = JSON.parse(localStorage.getItem("user_Data") || "{}");
   const [callStatus, setCallStatus] = useState("idle");
-  const [isVideo, setIsVideo] = useState(true)
-
+  const [isVideo, setIsVideo] = useState(true);
+  const [hasFetched, setHasFetched] = useState(false);
+  const [countrow, setCountRow] = useState(0);
   const voiceRef = useRef();
 
   const handleVoiceCall = () => {
@@ -85,6 +88,80 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [room?.chat, loading]);
+
+  const fetchChatHistory = useCallback(() => {
+    if (!selectedId) return;
+
+    const currentRoom = room?.chat?.find((r) => r.chat_room_id === selectedId);
+    const currentChat = currentRoom?.chat || [];
+
+    setLoading(true);
+    axiosInspector
+      .get(`/chatrooms/${selectedId}/chats?start=${countrow === 0 ? room?.chat?.length + 1 : countrow}&limit=5`, {
+        headers: { token },
+      })
+      .then((res) => {
+        const history = res.data.list.map((m) => ({
+          message: m.message,
+          isMe: m.sender.id === userId,
+          message_type: m.message_type || "Msg",
+        }));
+
+        setRooms((prev) =>
+          prev.map((r) =>
+            r.chat_room_id === selectedId
+              ? { ...r, chat: [...(r.chat || []), ...history] }
+              : r
+          )
+        );
+
+        // setCurrentRoom({ chat: [...currentChat, ...history], log: "" });
+        const uniqueHistory = history.filter(
+          (newMsg) => !room.chat.some((existingMsg) => existingMsg.message === newMsg.message)
+        );
+        setCurrentRoom({
+          chat: [...room.chat, ...uniqueHistory], // no duplicates
+          log: "",
+        });
+        // setHasFetched(false);
+        console.log("Start index for next fetch:", currentChat.length + history.length);
+        setCountRow(prev => prev === 0 ? room?.chat?.length + 1 : prev + 1);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }
+    , [selectedId, room, token, userId, setCurrentRoom]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const topThreshold = 50;    // Trigger when user scrolls near top
+      const bottomThreshold = 50; // Safety margin from bottom
+
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+
+      const isTop = scrollTop <= topThreshold;
+      const isBottom = scrollHeight - scrollTop - clientHeight <= bottomThreshold;
+
+      // ✅ Only call when near top and NOT near bottom
+      if (isTop && !isBottom && !loading && selectedId) {
+        fetchChatHistory();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [loading, selectedId, fetchChatHistory]);
+
+
+
+  useEffect(() => {
+    setHasFetched(false);
+  }, [selectedId]);
 
   const onEmojiClick = (emojiData) => {
     setInput((prev) => prev + emojiData.emoji);
@@ -231,6 +308,13 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
       </div>
     );
   }
+
+  //FOR LOAD MORE
+
+
+
+
+
 
   return (
     <div className="flex-1 flex flex-col bg-white">
@@ -405,6 +489,12 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
           className="flex-1 px-4 py-2 text-sm rounded-full border border-gray-200 shadow-sm focus:outline-none"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault(); // prevent newline
+              handleSend();
+            }
+          }}
         />
         <button
           onClick={handleSend}
@@ -539,7 +629,7 @@ export default function MessagePage() {
     if (!selectedId) return;
     setLoading(true);
     axiosInspector
-      .get(`/chatrooms/${selectedId}/chats?start=0&limit=60`, {
+      .get(`/chatrooms/${selectedId}/chats?start=0&limit=5`, {
         headers: { token },
       })
       .then((res) => {
@@ -579,6 +669,12 @@ export default function MessagePage() {
         userId={userId}
         handleVideoCallFunc={handleVideoCall}
         handleVoiceCallFunc={handleVoiceCall}
+
+        setCurrentRoom={setCurrentRoom}
+        selectedId={selectedId}
+        setSelectedId={setSelectedId}
+        setLoading={setLoading}
+        setRooms={setRooms}
       />
       {/* {showVoiceCall && (
         <VideoCallScreen />
