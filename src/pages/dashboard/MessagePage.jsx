@@ -74,6 +74,7 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
   const [callStatus, setCallStatus] = useState("idle");
   const [isVideo, setIsVideo] = useState(true);
   const [hasFetched, setHasFetched] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [countrow, setCountRow] = useState(0);
   const voiceRef = useRef();
 
@@ -90,72 +91,70 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
   }, [room?.chat, loading]);
 
   const fetchChatHistory = useCallback(() => {
-    if (!selectedId) return;
+  if (!selectedId || !hasMore || !containerRef.current) return;
 
-    const currentRoom = room?.chat?.find((r) => r.chat_room_id === selectedId);
-    const currentChat = currentRoom?.chat || [];
+  const container = containerRef.current;
+  const previousScrollHeight = container.scrollHeight;
 
-    setLoading(true);
-    axiosInspector
-      .get(`/chatrooms/${selectedId}/chats?start=${countrow === 0 ? room?.chat?.length + 1 : countrow}&limit=5`, {
-        headers: { token },
-      })
-      .then((res) => {
-        const history = res.data.list.map((m) => ({
-          message: m.message,
-          isMe: m.sender.id === userId,
-          message_type: m.message_type || "Msg",
-        }));
+  setLoading(true);
+  axiosInspector
+    .get(`/chatrooms/${selectedId}/chats?start=${countrow}&limit=5`, {
+      headers: { token },
+    })
+    .then((res) => {
+      const history = res.data.list.map((m) => ({
+        message: m.message,
+        isMe: m.sender.id === userId,
+        message_type: m.message_type || "Msg",
+      }));
 
-        setRooms((prev) =>
-          prev.map((r) =>
-            r.chat_room_id === selectedId
-              ? { ...r, chat: [...(r.chat || []), ...history] }
-              : r
-          )
-        );
+      if (history.length < 5) setHasMore(false);
 
-        // setCurrentRoom({ chat: [...currentChat, ...history], log: "" });
-        const uniqueHistory = history.filter(
-          (newMsg) => !room.chat.some((existingMsg) => existingMsg.message === newMsg.message)
-        );
-        setCurrentRoom({
-          chat: [...room.chat, ...uniqueHistory], // no duplicates
-          log: "",
-        });
-        // setHasFetched(false);
-        console.log("Start index for next fetch:", currentChat.length + history.length);
-        setCountRow(prev => prev === 0 ? room?.chat?.length + 1 : prev + 1);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }
-    , [selectedId, room, token, userId, setCurrentRoom]);
+      // Insert new (older) messages at the end of array since we reverse() before rendering
+      setRooms((prev) =>
+        prev.map((r) =>
+          r.chat_room_id === selectedId
+            ? { ...r, chat: [...(r.chat || []), ...history] }
+            : r
+        )
+      );
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+      const uniqueHistory = history.filter(
+        (newMsg) => !room.chat.some((existingMsg) => existingMsg.message === newMsg.message)
+      );
 
-    const handleScroll = () => {
-      const topThreshold = 50;    // Trigger when user scrolls near top
-      const bottomThreshold = 50; // Safety margin from bottom
+      setCurrentRoom({
+        chat: [...room.chat, ...uniqueHistory],
+        log: "",
+      });
 
-      const scrollTop = container.scrollTop;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
+      setCountRow((prev) => (prev === 0 ? room?.chat?.length + 1 : prev + 5));
 
-      const isTop = scrollTop <= topThreshold;
-      const isBottom = scrollHeight - scrollTop - clientHeight <= bottomThreshold;
+      // Defer scroll adjustment until messages are rendered
+      setTimeout(() => {
+        const newScrollHeight = container.scrollHeight;
+        container.scrollTop = newScrollHeight - previousScrollHeight;
+      }, 0);
+    })
+    .catch(console.error)
+    .finally(() => setLoading(false));
+}, [selectedId, room, token, userId, setCurrentRoom]);
 
-      // ✅ Only call when near top and NOT near bottom
-      if (isTop && !isBottom && !loading && selectedId) {
-        fetchChatHistory();
-      }
-    };
 
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [loading, selectedId, fetchChatHistory]);
+ useEffect(() => {
+  const container = containerRef.current;
+  if (!container) return;
+
+  const handleScroll = () => {
+    if (container.scrollTop <= 50 && !loading && hasMore) {
+      fetchChatHistory();
+    }
+  };
+
+  container.addEventListener("scroll", handleScroll);
+  return () => container.removeEventListener("scroll", handleScroll);
+}, [fetchChatHistory, loading, hasMore]);
+
 
 
 
@@ -300,16 +299,7 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
     }
   };
 
-  if (loading || !room) {
-    console.log(resiverDetail, "resiverDetailresiverDetailresiverDetail")
-    return (
-      <div className="flex-1 flex items-center justify-center text-gray-400">
-        Loading…
-      </div>
-    );
-  }
-
-  //FOR LOAD MORE
+    //FOR LOAD MORE
 
 
 
@@ -377,6 +367,11 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
         ref={containerRef}
         className="flex-1 px-6 py-4 space-y-3 overflow-y-auto custom-scroll max-h-[calc(100vh-180px)]"
       >
+{loading && (
+          <div className="text-center text-sm text-gray-400 py-2">
+            Loading older messages…
+          </div>
+        )}
         {[...(room.chat || [])].reverse().map((m, i) => (
           <div
             key={i}
@@ -629,7 +624,7 @@ export default function MessagePage() {
     if (!selectedId) return;
     setLoading(true);
     axiosInspector
-      .get(`/chatrooms/${selectedId}/chats?start=0&limit=5`, {
+      .get(`/chatrooms/${selectedId}/chats?start=0&limit=10`, {
         headers: { token },
       })
       .then((res) => {
