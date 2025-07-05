@@ -223,6 +223,80 @@ function ChatWindow({
     setHasFetched(false);
   }, [selectedId]);
 
+  const fetchChatHistory = useCallback(() => {
+    if (!selectedId) return;
+
+    const currentRoom = room?.chat?.find((r) => r.chat_room_id === selectedId);
+    const currentChat = currentRoom?.chat || [];
+
+    setLoading(true);
+    axiosInspector
+      .get(`/chatrooms/${selectedId}/chats?start=${countrow === 0 ? room?.chat?.length + 1 : countrow}&limit=5`, {
+        headers: { token },
+      })
+      .then((res) => {
+        const history = res.data.list.map((m) => ({
+          message: m.message,
+          isMe: m.sender.id === userId,
+          message_type: m.message_type || "Msg",
+        }));
+
+        setRooms((prev) =>
+          prev.map((r) =>
+            r.chat_room_id === selectedId
+              ? { ...r, chat: [...(r.chat || []), ...history] }
+              : r
+          )
+        );
+
+        // setCurrentRoom({ chat: [...currentChat, ...history], log: "" });
+        const uniqueHistory = history.filter(
+          (newMsg) => !room.chat.some((existingMsg) => existingMsg.message === newMsg.message)
+        );
+        setCurrentRoom({
+          chat: [...room.chat, ...uniqueHistory], // no duplicates
+          log: "",
+        });
+        // setHasFetched(false);
+        console.log("Start index for next fetch:", currentChat.length + history.length);
+        setCountRow(prev => prev === 0 ? room?.chat?.length + 1 : prev + 1);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }
+    , [selectedId, room, token, userId, setCurrentRoom]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const topThreshold = 50;    // Trigger when user scrolls near top
+      const bottomThreshold = 50; // Safety margin from bottom
+
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+
+      const isTop = scrollTop <= topThreshold;
+      const isBottom = scrollHeight - scrollTop - clientHeight <= bottomThreshold;
+
+      // ✅ Only call when near top and NOT near bottom
+      if (isTop && !isBottom && !loading && selectedId) {
+        fetchChatHistory();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [loading, selectedId, fetchChatHistory]);
+
+
+
+  useEffect(() => {
+    setHasFetched(false);
+  }, [selectedId]);
+
   const onEmojiClick = (emojiData) => {
     setInput((prev) => prev + emojiData.emoji);
     setShowPicker(false);
@@ -276,6 +350,13 @@ function ChatWindow({
       </div>
     );
   }
+
+  //FOR LOAD MORE
+
+
+
+
+
 
   return (
     <div className="flex-1 flex flex-col bg-white">
