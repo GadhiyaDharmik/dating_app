@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import axiosMain from "../http/axiosMain"; // ← your axios instance
 import { auth, provider, signInWithPopup } from "../Auth/firebase"; // adjust path as needed
 
-
 function LoginPage() {
   return (
     <MainSignUp
@@ -70,37 +69,39 @@ function LoginComponent() {
       }
     } catch (err) {
       console.error(err);
-      setFeedback(err.response?.data?.message || "Login failed. Please try again.");
+      setFeedback(
+        err.response?.data?.message || "Login failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-
   const handleGoogleLogin = async () => {
-  try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-    // Optional: Send user info to your backend for registration/login
-    console.log("Google user:", user);
+      // Optional: Send user info to your backend for registration/login
+      console.log("Google user:", user);
 
-    // Example: Save user token or info locally
-    localStorage.setItem("authToken", await user.getIdToken());
-    localStorage.setItem("user_Data", JSON.stringify(user));
+      // Example: Save user token or info locally
+      localStorage.setItem("authToken", await user.getIdToken());
+      localStorage.setItem("user_Data", JSON.stringify(user));
 
-    // Redirect to dashboard
-    navigate("/dashboard/home");
-  } catch (error) {
-    console.error("Google login error:", error);
-    setFeedback("Google sign-in failed. Please try again.");
-  }
-};
-
+      // Redirect to dashboard
+      navigate("/dashboard/home");
+    } catch (error) {
+      console.error("Google login error:", error);
+      setFeedback("Google sign-in failed. Please try again.");
+    }
+  };
 
   return (
     <div className="max-w-md mx-auto mt-10 p-4 rounded-xl">
-      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Login</h2>
+      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
+        Login
+      </h2>
 
       <p className="text-sm text-gray-500 mb-4 text-center">
         You can login using either your mobile number or your email address.
@@ -108,18 +109,18 @@ function LoginComponent() {
 
       {/* Social Login Buttons */}
       <div className="flex justify-center gap-4 mb-4">
-      <button
-  type="button"
-  className="flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
-  onClick={handleGoogleLogin}
->
-  <img
-    src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
-    alt="Google"
-    className="w-5 h-5 mr-2"
-  />
-  Google
-</button>
+        <button
+          type="button"
+          className="flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+          onClick={handleGoogleLogin}
+        >
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
+            alt="Google"
+            className="w-5 h-5 mr-2"
+          />
+          Google
+        </button>
 
         <button
           type="button"
@@ -215,8 +216,9 @@ function LoginComponent() {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 text-white font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] hover:opacity-90 transition ${loading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+          className={`w-full py-2 text-white font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] hover:opacity-90 transition ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           {loading ? "Logging in…" : "Login"}
         </button>

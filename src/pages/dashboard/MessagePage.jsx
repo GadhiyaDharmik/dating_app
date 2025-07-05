@@ -10,6 +10,7 @@ import EmojiPicker from "emoji-picker-react";
 import VoiceCallComponent from "./VoiceCallComponent.jsx";
 import VideoCallScreen from "./VideoCallRinging.jsx";
 import VideoCallStart from "./VideoCallStart.jsx";
+import axios from "axios";
 
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/chat/";
 
@@ -34,10 +35,11 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
               setResiverDetail(room);
               setSelectedId(room.chat_room_id);
             }}
-            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 ${selectedId === room.chat_room_id
-              ? "bg-[#E8F8FF]"
-              : "hover:bg-gray-50"
-              }`}
+            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 ${
+              selectedId === room.chat_room_id
+                ? "bg-[#E8F8FF]"
+                : "hover:bg-gray-50"
+            }`}
           >
             <img
               src={room.user?.url || userImg}
@@ -63,124 +65,168 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
   );
 }
 
-function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceCallFunc, handleVideoCallFunc }) {
+function ChatWindow({
+  room,
+  loading,
+  onSend,
+  resiverDetail,
+  userId,
+  handleVoiceCallFunc,
+  handleVideoCallFunc,
+  setCurrentRoom,
+  selectedId,
+  setSelectedId,
+  setLoading,
+  setRooms,
+  countMessage,
+  totalCount,
+  setTotalCount,
+}) {
   const [input, setInput] = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [pendingFiles, setPendingFiles] = useState([]);
   const containerRef = useRef(null);
   const { token } = JSON.parse(localStorage.getItem("user_Data") || "{}");
   const [callStatus, setCallStatus] = useState("idle");
-  const [isVideo, setIsVideo] = useState(true)
-
+  const [isVideo, setIsVideo] = useState(true);
+  const [hasFetched, setHasFetched] = useState(false);
+  const [countrow, setCountRow] = useState(0);
   const voiceRef = useRef();
+
+  // --- New state for scroll fix ---
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const prevScrollHeightRef = useRef(0);
 
   const handleVoiceCall = () => {
     voiceRef.current?.startCall();
     setCallStatus("calling");
-
   };
 
+  // Save scroll height before fetching more
   useEffect(() => {
-    if (!loading && containerRef.current) {
+    if (isFetchingMore && containerRef.current) {
+      prevScrollHeightRef.current = containerRef.current.scrollHeight;
+    }
+  }, [isFetchingMore]);
+
+  // Restore scroll position after new messages are prepended
+  useEffect(() => {
+    if (isFetchingMore && containerRef.current) {
+      const container = containerRef.current;
+      const newScrollHeight = container.scrollHeight;
+      const prevScrollHeight = prevScrollHeightRef.current;
+      container.scrollTop = newScrollHeight - prevScrollHeight;
+      setIsFetchingMore(false); // Reset after scroll adjustment
+    }
+  }, [room?.chat, isFetchingMore]);
+
+  // Only scroll to bottom on initial load or when sending a message
+  useEffect(() => {
+    if (!loading && !isFetchingMore && containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [room?.chat, loading]);
+  }, [room?.chat, loading, isFetchingMore]);
+
+  const fetchChatHistory = useCallback(() => {
+    if (!selectedId) return;
+
+    setIsFetchingMore(true); // Set flag before fetching
+
+    let limit = 25;
+    axiosInspector
+      .get(
+        `/chatrooms/${selectedId}/chats?start=${
+          countrow === 0
+            ? room?.chat?.length
+            : countMessage < countrow
+            ? countMessage
+            : countrow
+        }&limit=${limit}`,
+        {
+          headers: { token },
+        }
+      )
+      .then((res) => {
+        setTotalCount(res.data.count);
+        if (res.data.list.length > 0) {
+          const history = res.data.list.map((m) => ({
+            message: m.message,
+            isMe: m.sender.id === userId,
+            message_type: m.message_type || "Msg",
+            id: m.id,
+          }));
+
+          setRooms((prev) =>
+            prev.map((r) =>
+              r.chat_room_id === selectedId
+                ? { ...r, chat: [...(r.chat || []), ...history] }
+                : r
+            )
+          );
+
+          const uniqueHistory = history.filter(
+            (newMsg) =>
+              !room.chat.some((existingMsg) => existingMsg.id === newMsg.id)
+          );
+          setCurrentRoom({
+            chat: [...room.chat, ...uniqueHistory], // no duplicates
+            log: "",
+          });
+          // setCountRow((prev) =>
+          //   prev === 0 ? room?.chat?.length + room?.chat?.length : prev + limit
+          // );
+        }
+      })
+      .catch(console.error);
+    // .finally(() => setIsFetchingMore(false)); // Now handled in scroll effect
+  }, [
+    selectedId,
+    room,
+    token,
+    userId,
+    setCurrentRoom,
+    countrow,
+    countMessage,
+    setRooms,
+  ]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const topThreshold = 10; // Trigger when user scrolls near top
+      const bottomThreshold = 10; // Safety margin from bottom
+
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+
+      const isTop = scrollTop <= topThreshold;
+      const isBottom =
+        scrollHeight - scrollTop - clientHeight <= bottomThreshold;
+
+      // debugger;
+      if (totalCount !== room.chat?.length) {
+        if (isTop && !isBottom && !loading && selectedId && !isFetchingMore) {
+          // Only call when near top and NOT near bottom
+          fetchChatHistory();
+        }
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [loading, selectedId, fetchChatHistory, isFetchingMore]);
+
+  useEffect(() => {
+    setHasFetched(false);
+  }, [selectedId]);
 
   const onEmojiClick = (emojiData) => {
     setInput((prev) => prev + emojiData.emoji);
     setShowPicker(false);
   };
-
-  let agoraClient = null;
-  let localAudioTrack = null;
-
-  // const joinVoiceCall = async (appId, channelName, token, uid) => {
-  //   try {
-  //     agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
-  //     await agoraClient.join(appId, channelName, token, uid);
-
-  //     localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-
-  //     await agoraClient.publish([localAudioTrack]);
-
-  //     console.log("Joined voice call successfully.");
-  //   } catch (err) {
-  //     console.error("Failed to join voice call:", err?.message || err);
-  //     console.error("Full error object:", err); // Add this line
-  //   }
-  // };
-
-  // const leaveVoiceCall = async () => {
-  //   if (localAudioTrack) {
-  //     localAudioTrack.close();
-  //     localAudioTrack = null;
-  //   }
-
-  //   if (agoraClient) {
-  //     await agoraClient.leave();
-  //     agoraClient = null;
-  //     console.log("Left voice call.");
-  //   }
-  // };
-
-  // const handleVideoCall = async () => {
-  //   const uid = userId || Math.floor(Math.random() * 10000);
-  //   const channelName = `room-${room.chat_room_id}`;
-
-  //   try {
-  //     const res = await fetch(
-  //       "https://c9e7-103-88-56-118.ngrok-free.app/rtc_token",
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //         body: JSON.stringify({
-  //           channelName,
-  //           uid,
-  //           expireTime: 3600,
-  //         }),
-  //       }
-  //     );
-
-  //     const data = await res.json();
-  //     console.log("Agora Token Info:", data);
-
-  //     // Redirect to call page or open modal with Agora
-  //     // Or use a state toggle to show VideoCall component
-  //     alert(`Token: ${data.token}\nChannel: ${data.channelName}`);
-  //   } catch (error) {
-  //     console.error("Failed to get Agora token", error);
-  //   }
-  // };
-  // const handleVoiceCall = async () => {
-  //   const uid = resiverDetail.user.id || Math.floor(Math.random() * 10000);
-  //   const channelName = `voice-${room.chat_room_id}`;
-
-  //   try {
-  //     const response = await axiosInspector.post(
-  //       "https://c9e7-103-88-56-118.ngrok-free.app/rtc_token",
-  //       {
-  //         channelName,
-  //         uid,
-  //         expireTime: 3600,
-  //       }
-  //     );
-
-  //     const { rtcToken } = response.data;
-
-  //     await joinVoiceCall(
-  //       "cb8359241f474aca9597df671df45af1",
-  //       channelName,
-  //       rtcToken,
-  //       uid
-  //     );
-  //     alert("Voice call started");
-  //   } catch (error) {
-  //     console.error("Voice call failed:", error);
-  //   }
-  // };
 
   const handleSend = async () => {
     if (input.trim()) {
@@ -224,7 +270,6 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
   };
 
   if (loading || !room) {
-    console.log(resiverDetail, "resiverDetailresiverDetailresiverDetail")
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400">
         Loading…
@@ -247,10 +292,11 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
           </div>
         </div>
         <div className="flex gap-2 items-center">
-          <button className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(95.88deg,_rgba(255,197,197,0.2)_-2.12%]"
+          <button
+            className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(95.88deg,_rgba(255,197,197,0.2)_-2.12%]"
             onClick={() => {
-              handleVoiceCall()
-              setIsVideo(true)
+              handleVoiceCall();
+              setIsVideo(true);
             }}
           >
             <img src={videoCall} alt="video call" />
@@ -261,11 +307,10 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
           <button
             className="w-10 h-15 flex items-center justify-center rounded-md bg-[linear-gradient(108.95deg, rgba(76, 200, 42, 0.16) -1.3%,]"
             onClick={() => {
-              setIsVideo(false)
-              handleVoiceCall()
+              setIsVideo(false);
+              handleVoiceCall();
             }}
           >
-
             <img src={Call} alt="Call Button" />
           </button>
 
@@ -277,14 +322,9 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
             receiverDetail={resiverDetail}
             isVideo={isVideo}
             token={token}
-            callStatus={callStatus} setCallStatus={setCallStatus}
+            callStatus={callStatus}
+            setCallStatus={setCallStatus}
           />
-
-          {/* <VoiceCallComponent
-            channelName={`voice-${resiverDetail?.chat_room_id}`}
-            receiverId={resiverDetail?.user?.id}
-            userId={userId}
-          /> */}
         </div>
       </div>
 
@@ -296,8 +336,9 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
         {[...(room.chat || [])].reverse().map((m, i) => (
           <div
             key={i}
-            className={`flex gap-2 ${m.isMe ? "justify-end" : "justify-start"
-              } items-end`}
+            className={`flex gap-2 ${
+              m.isMe ? "justify-end" : "justify-start"
+            } items-end`}
           >
             {!m.isMe && (
               <img
@@ -306,8 +347,9 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
               />
             )}
             <div
-              className={`rounded-sm text-xl p-1 max-w-[70%] shadow ${m.isMe ? "bg-[#979797] text-white" : "bg-gray-100 text-gray-900"
-                }`}
+              className={`rounded-sm text-xl p-1 max-w-[70%] shadow ${
+                m.isMe ? "bg-[#979797] text-white" : "bg-gray-100 text-gray-900"
+              }`}
             >
               {["Image", "Gif"].includes(m.message_type) ? (
                 <div className="overflow-hidden border max-w-[250px] bg-white shadow-md border-[#00A3E0]">
@@ -405,6 +447,12 @@ function ChatWindow({ room, loading, onSend, resiverDetail, userId, handleVoiceC
           className="flex-1 px-4 py-2 text-sm rounded-full border border-gray-200 shadow-sm focus:outline-none"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault(); // prevent newline
+              handleSend();
+            }
+          }}
         />
         <button
           onClick={handleSend}
@@ -424,10 +472,11 @@ export default function MessagePage() {
   const [currentRoom, setCurrentRoom] = useState({ chat: [], log: "" });
   const [loading, setLoading] = useState(false);
   const wsRef = useRef(null);
+  const [totalCount, setTotalCount] = useState(null);
 
   const [showVoiceCall, setShowVoiceCall] = useState(false);
   const [showVideoCall, setShowVideoCall] = useState(false);
-
+  const [countMessage, setCountMessage] = useState(0);
   const handleVoiceCall = () => {
     setShowVoiceCall(true);
   };
@@ -435,7 +484,6 @@ export default function MessagePage() {
   const handleVideoCall = () => {
     setShowVideoCall(true);
   };
-
 
   const { token, id: userId } = JSON.parse(
     localStorage.getItem("user_Data") || "{}"
@@ -476,10 +524,10 @@ export default function MessagePage() {
             prev.map((r) =>
               r.chat_room_id === room_id
                 ? {
-                  ...r,
-                  chat: [{ message, isMe, message_type }, ...r.chat],
-                  lastMessage: message,
-                }
+                    ...r,
+                    chat: [{ message, isMe, message_type }, ...r.chat],
+                    lastMessage: message,
+                  }
                 : r
             )
           );
@@ -521,13 +569,13 @@ export default function MessagePage() {
         prev.map((r) =>
           r.chat_room_id === selectedId
             ? {
-              ...r,
-              chat: [
-                { message: msg, isMe: true, message_type: type },
-                ...r.chat,
-              ],
-              lastMessage: msg,
-            }
+                ...r,
+                chat: [
+                  { message: msg, isMe: true, message_type: type },
+                  ...r.chat,
+                ],
+                lastMessage: msg,
+              }
             : r
         )
       );
@@ -539,7 +587,7 @@ export default function MessagePage() {
     if (!selectedId) return;
     setLoading(true);
     axiosInspector
-      .get(`/chatrooms/${selectedId}/chats?start=0&limit=60`, {
+      .get(`/chatrooms/${selectedId}/chats?start=0&limit=30`, {
         headers: { token },
       })
       .then((res) => {
@@ -547,7 +595,9 @@ export default function MessagePage() {
           message: m.message,
           isMe: m.sender.id === userId,
           message_type: m.message_type || "Msg",
+          id: m.id,
         }));
+        setCountMessage(res.data.count);
         setRooms((prev) =>
           prev.map((r) =>
             r.chat_room_id === selectedId ? { ...r, chat: history } : r
@@ -579,6 +629,14 @@ export default function MessagePage() {
         userId={userId}
         handleVideoCallFunc={handleVideoCall}
         handleVoiceCallFunc={handleVoiceCall}
+        setCurrentRoom={setCurrentRoom}
+        selectedId={selectedId}
+        setSelectedId={setSelectedId}
+        setLoading={setLoading}
+        setRooms={setRooms}
+        countMessage={countMessage}
+        totalCount={totalCount}
+        setTotalCount={setTotalCount}
       />
       {/* {showVoiceCall && (
         <VideoCallScreen />
