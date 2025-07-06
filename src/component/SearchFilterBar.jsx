@@ -1,8 +1,9 @@
 // SearchFilterBar.jsx
 
 import React, { useEffect, useState } from "react";
-import { Search, Users, User, Filter, X } from "lucide-react";
+import { Search, Users, User, X } from "lucide-react";
 import axiosInspector from "../http/axiosMain.js";
+import Filter from "../assets/Frame.svg"
 
 // Reusable pill‐toggle section with custom bg on selected/unselected
 const FilterSection = ({ label, options, selected, onToggle }) => (
@@ -153,62 +154,75 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
   return (
     <>
       {/* ─── Top Search Bar ─────────────────────────────────────────────── */}
-      <div className="w-full flex items-center justify-between px-8 py-4 bg-white shadow">
+      <div className="w-full flex flex-wrap items-center gap-4 md:gap-6 px-4 md:px-8 py-4 bg-white shadow">
         {/* Search input */}
-        <div className="flex items-center w-1/2 border border-gray-200 rounded-full px-4 py-2">
+        <div className="flex items-center flex-grow md:flex-none md:w-[500px] border border-gray-200 rounded-full px-4 py-2" style={{ height: "60px" }}>
           <input
             type="text"
             placeholder="Search by name..."
             className="flex-grow outline-none text-sm text-gray-700"
             value={searchTerm}
-            // onChange={(e) => setSearchTerm(e.target.value)}
             onChange={handleSearchChange}
           />
           <Search className="w-4 h-4 text-gray-400" />
         </div>
 
-        {/* Quick gender toggles */}
-        <div className="flex items-center gap-6 ml-4 text-sm font-medium text-gray-700">
-          <span
-            onClick={() => {
-              setGender("Random");
-              applyGender("Random");
-            }}
-            className={`flex items-center gap-1 cursor-pointer ${gender === "" ? "text-cyan-600" : ""
-              }`}
-          >
-            <Users className="w-4 h-4" /> Random
-          </span>
-          <span
-            onClick={() => {
-              setGender("Male");
-              applyGender("Male");
-            }}
-            className={`flex items-center gap-1 cursor-pointer ${gender === "Male" ? "text-cyan-600" : ""
-              }`}
-          >
-            <User className="w-4 h-4" /> Men
-          </span>
-          <span
-            onClick={() => {
-              applyGender("Female");
-              setGender("Female");
-            }}
-            className={`flex items-center gap-1 cursor-pointer ${gender === "Female" ? "text-cyan-600" : ""
-              }`}
-          >
-            <User className="w-4 h-4" /> Women
-          </span>
+        {/* Gender toggles */}
+        <div className="flex flex-wrap items-center gap-4 md:gap-8 pl-0 md:pl-8 text-sm font-medium text-gray-700">
+          {["Random", "Male", "Female"].map((g, index) => (
+            <span
+              key={g}
+              onClick={() => {
+                setGender(g);
+                applyGender(g);
+              }}
+              className={`flex items-center gap-1 cursor-pointer ${gender === g ? "text-cyan-600" : "text-gray-700"}`}
+              style={{
+                fontFamily: "Rubik",
+                fontWeight: 500,
+                fontSize: "18px",
+                lineHeight: "20px",
+                letterSpacing: "0px",
+                verticalAlign: "middle",
+              }}
+            >
+              <User className="w-4 h-4" />
+              {g === "Male" ? "Men" : g === "Female" ? "Women" : "Random"}
+            </span>
+          ))}
         </div>
 
-        {/* Open filter panel */}
-        <button
-          onClick={() => setShow(true)}
-          className="flex items-center gap-2 bg-cyan-400 text-white px-4 py-2 rounded-full hover:bg-cyan-500 text-sm font-medium shadow"
-        >
-          <Filter className="w-4 h-4" /> Filter
-        </button>
+        {/* Filter button */}
+        <div className="ml-auto">
+          <button
+            onClick={() => setShow(true)}
+            className="flex items-center justify-center gap-2 text-white px-5 py-2 rounded-full hover:bg-cyan-500 text-sm font-medium shadow"
+            style={{
+              width: "150px",
+              height: "50px",
+              borderRadius: "100px",
+              opacity: 1,
+              background: "linear-gradient(87.11deg, #00D4FF 17.38%, #00A3E0 95.19%)",
+            }}
+          >
+            <img src={Filter} alt="Filter" className="w-6 h-6" />
+            <span
+              style={{
+                fontFamily: "Rubik,sans-serif",
+                fontWeight: 400,
+                fontSize: "20px",
+                lineHeight: "20px",
+                letterSpacing: "0px",
+                verticalAlign: "middle",
+              }}
+            >
+              Filter
+            </span>
+          </button>
+        </div>
       </div>
+
+
 
       {/* ─── Sliding Panel ──────────────────────────────────────────────── */}
       <div

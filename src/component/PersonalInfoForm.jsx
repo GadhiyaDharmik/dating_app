@@ -29,6 +29,48 @@ function ImagesComponent() {
     return storedUserData;
   };
 
+  // ✅ Fetch already uploaded images on mount
+  useEffect(() => {
+    const fetchUserImages = async () => {
+      try {
+        const userData = getUserData();
+        const userId = userData?.id;
+        const token = userData?.token;
+
+        if (!userId || !token) {
+          console.warn("User not authenticated");
+          return;
+        }
+
+        const response = await axiosMain.get(`/users/${userId}/gallary`, {
+          headers: { token },
+        });
+
+        const fetchedImages = response?.data || [];
+        console.log("kanjjjj",fetchedImages);
+
+        const updatedImages = Array(maxPhotos).fill(null);
+        const updatedUploaded = Array(maxPhotos).fill(null);
+
+        fetchedImages.forEach((img, index) => {
+          if (index < maxPhotos && img.url) {
+            updatedImages[index] = img.url;
+            updatedUploaded[index] = true;
+            console.log("kanjjjj",updatedImages[index]);
+          }
+        });
+
+        setImages(updatedImages);
+        setUploadedImages(updatedUploaded);
+      } catch (error) {
+        console.error("Error fetching gallery images:", error);
+      }
+    };
+
+    fetchUserImages();
+  }, []);
+
+
   const handleAddPhoto = async (event) => {
     const files = event.target.files;
     if (files && files[0] && currentIndex !== null) {
@@ -61,7 +103,7 @@ function ImagesComponent() {
       }
 
       const formData = new FormData();
-      formData.append('files', file);
+      formData.append("files", file);
 
       const response = await axiosMain.post(
         `/users/${userId}/gallary`,
@@ -109,7 +151,7 @@ function ImagesComponent() {
           <div
             key={index}
             onClick={() => handleClickAdd(index)}
-            className={`min-w-[10rem] h-40 bg-gray-100 rounded-md overflow-hidden border-2 border-dashed border-gray-300 flex-shrink-0 cursor-pointer relative flex items-center justify-center ${isUploading && currentIndex === index ? 'opacity-50' : ''
+            className={`min-w-[10rem] h-40 bg-gray-100 rounded-md overflow-hidden border-2 border-dashed border-gray-300 flex-shrink-0 cursor-pointer relative flex items-center justify-center ${isUploading && currentIndex === index ? "opacity-50" : ""
               }`}
           >
             {src ? (
@@ -155,6 +197,7 @@ function ImagesComponent() {
     </div>
   );
 }
+
 
 function PersonalInfoFormData() {
   const [userData, setUserData] = useState({});
