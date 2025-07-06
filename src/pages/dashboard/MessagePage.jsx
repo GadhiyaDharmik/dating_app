@@ -741,11 +741,7 @@ function ChatWindow({
   const containerRef = useRef(null);
   const { token } = JSON.parse(localStorage.getItem("user_Data") || "{}");
   const [callStatus, setCallStatus] = useState("idle");
-<<<<<<< HEAD
-  const [isVideo, setIsVideo] = useState(false);
-=======
   const [isVideo, setIsVideo] = useState(true);
->>>>>>> e77cfb262cecd571e8fbd4b5dc371641e5106175
   const [hasFetched, setHasFetched] = useState(false);
   const [countrow, setCountRow] = useState(0);
   const voiceRef = useRef();
