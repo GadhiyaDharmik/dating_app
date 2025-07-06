@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import MainSignUp from "../component/MainSignUp";
 import { useNavigate } from "react-router-dom";
 import axiosMain from "../http/axiosMain"; // ← your axios instance
 import { auth, provider, signInWithPopup } from "../Auth/firebase"; // adjust path as needed
+import showPasswords from "../assets/showPassword.svg";
+import NotshowPassword from "../assets/NotshowPassword.svg"
+import google from "../assets/google.svg"
+import facebook from "../assets/facebook.svg"
 
 
 function LoginPage() {
@@ -20,10 +24,44 @@ function LoginComponent() {
   const navigate = useNavigate();
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [mobile, setMobile] = useState("");
-  const [countryCode, setCountryCode] = useState("+91");
+  // const [countryCode, setCountryCode] = useState("+91");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [countries, setCountries] = useState([]);
+  const [countryCode, setCountryCode] = useState("+91");
+  const [selectedFlag, setSelectedFlag] = useState("https://flagcdn.com/w40/in.png");
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const res = await axiosMain.get(
+          "https://restcountries.com/v3.1/all?fields=name,flags,idd,cca2"
+        );
+        const formatted = res.data
+          .map((country) => {
+            const dialCode = country.idd?.root + (country.idd?.suffixes?.[0] || "");
+            if (!dialCode) return null;
+
+            return {
+              name: country.name.common,
+              code: dialCode,
+              flag: country.flags?.png || "",
+              iso: country.cca2?.toLowerCase(),
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setCountries(formatted);
+      } catch (err) {
+        console.error("Failed to fetch country data:", err);
+      }
+    };
+
+    fetchCountries();
+  }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,56 +108,61 @@ function LoginComponent() {
       }
     } catch (err) {
       console.error(err);
-      setFeedback(err.response?.data?.message || "Login failed. Please try again.");
+      setFeedback(
+        err.response?.data?.message || "Login failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-
   const handleGoogleLogin = async () => {
-  try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-    // Optional: Send user info to your backend for registration/login
-    console.log("Google user:", user);
+      // Optional: Send user info to your backend for registration/login
+      console.log("Google user:", user);
 
-    // Example: Save user token or info locally
-    localStorage.setItem("authToken", await user.getIdToken());
-    localStorage.setItem("user_Data", JSON.stringify(user));
+      // Example: Save user token or info locally
+      localStorage.setItem("authToken", await user.getIdToken());
+      localStorage.setItem("user_Data", JSON.stringify(user));
 
-    // Redirect to dashboard
-    navigate("/dashboard/home");
-  } catch (error) {
-    console.error("Google login error:", error);
-    setFeedback("Google sign-in failed. Please try again.");
-  }
-};
+      // Redirect to dashboard
+      navigate("/dashboard/home");
+    } catch (error) {
+      console.error("Google login error:", error);
+      setFeedback("Google sign-in failed. Please try again.");
+    }
+  };
 
 
   return (
     <div className="max-w-md mx-auto mt-10 p-4 rounded-xl">
-      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Login</h2>
+      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
+        Login
+      </h2>
 
-      <p className="text-sm text-gray-500 mb-4 text-center">
-        You can login using either your mobile number or your email address.
+      <p className="mb-4 text-center" style={{ color: '#111111', fontWeight: '400', fontSize: '14px', fontFamily: 'Rubik,sans-serif' }}>
+        {/* You can login using either your mobile number or your email address. */}
+        Email or Phone Number
       </p>
 
       {/* Social Login Buttons */}
-      <div className="flex justify-center gap-4 mb-4">
-      <button
-  type="button"
-  className="flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
-  onClick={handleGoogleLogin}
->
-  <img
-    src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
-    alt="Google"
-    className="w-5 h-5 mr-2"
-  />
-  Google
-</button>
+      {/* <div className="flex justify-center gap-4 mb-4">
+        <button
+          type="button"
+          className="flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+          onClick={handleGoogleLogin}
+        >
+          <img
+            // src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
+            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+            alt="Google"
+            className="w-5 h-5 mr-2"
+          />
+          Google
+        </button>
 
         <button
           type="button"
@@ -135,22 +178,22 @@ function LoginComponent() {
           />
           Facebook
         </button>
-      </div>
+      </div> */}
 
       {/* Divider */}
-      <div className="flex items-center my-4">
+      {/* <div className="flex items-center my-4">
         <div className="flex-grow border-t border-gray-300"></div>
         <span className="px-2 text-gray-400 text-sm">Or</span>
         <div className="flex-grow border-t border-gray-300"></div>
-      </div>
+      </div> */}
 
       <form onSubmit={handleSubmit}>
         {/* Mobile Number Input */}
-        <div className="mb-4">
+        {/* <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
             Mobile Number
           </label>
-          <div className="flex items-center border border-blue-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-400 overflow-hidden">
+          <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-400 overflow-hidden">
             <select
               value={countryCode}
               onChange={(e) => setCountryCode(e.target.value)}
@@ -169,7 +212,42 @@ function LoginComponent() {
               className="flex-1 px-3 py-2 outline-none text-sm"
             />
           </div>
+        </div> */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+            Mobile Number
+          </label>
+
+          <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-400 overflow-hidden">
+            {/* {selectedFlag && (
+              <img src={selectedFlag} alt="Flag" className="w-6 h-4 ml-2" />
+            )} */}
+            <select
+              value={countryCode}
+              onChange={(e) => {
+                const selected = countries.find(c => c.code === e.target.value);
+                setCountryCode(selected.code);
+                setSelectedFlag(selected.flag);
+              }}
+              className="bg-white border-r px-2 py-2 text-sm outline-none text-gray-700 max-w-[80px]"
+            >
+              {countries.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {countryCode === c.code ? `${c.code}` : `${c.name} (${c.code})`}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="tel"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              placeholder="Enter your Mobile Number"
+              className="flex-1 px-3 py-2 outline-none text-sm"
+            />
+          </div>
         </div>
+
 
         {/* Divider */}
         <div className="flex items-center my-4">
@@ -188,7 +266,7 @@ function LoginComponent() {
             value={emailOrUsername}
             onChange={(e) => setEmailOrUsername(e.target.value)}
             placeholder="Enter your email address"
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00D4FF] transition duration-200"
           />
         </div>
 
@@ -197,13 +275,70 @@ function LoginComponent() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Password
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+
+          <div className="relative">
+
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00D4FF] transition duration-200 pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2"
+            >
+              {showPassword ? (
+                // SVG for "show password" (eye open)
+                <img src={showPasswords} alt="showPassword" className="w-5 h-5" />
+              ) : (
+                // Image for "hide password" (eye-slash)
+                <img src={NotshowPassword} alt="HidePassword" className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center my-4">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="px-2 text-gray-400 text-sm">Or</span>
+          <div className="flex-grow border-t border-gray-300"></div>
+        </div>
+
+        <div className="flex justify-center gap-4 mb-4">
+          <button
+            type="button"
+            className="flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+            onClick={handleGoogleLogin}
+          >
+            <img
+              // src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
+              // src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              src={google}
+              alt="Google"
+              className="w-5 h-5 mr-2"
+            />
+            Google
+          </button>
+
+          <button
+            type="button"
+            className="flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+            onClick={() => {
+              console.log("Facebook Login");
+            }}
+          >
+            <img
+              // src="https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png"
+              src={facebook}
+              alt="Facebook"
+              className="w-5 h-5 mr-2 rounded-full"
+            />
+            Facebook
+          </button>
         </div>
 
         {/* Error Message */}
@@ -215,8 +350,9 @@ function LoginComponent() {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 text-white font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] hover:opacity-90 transition ${loading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+          className={`w-full py-2 text-white font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] hover:opacity-90 transition ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           {loading ? "Logging in…" : "Login"}
         </button>

@@ -690,8 +690,8 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
               setSelectedId(room.chat_room_id);
             }}
             className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 ${selectedId === room.chat_room_id
-              ? "bg-[#E8F8FF]"
-              : "hover:bg-gray-50"
+                ? "bg-[#E8F8FF]"
+                : "hover:bg-gray-50"
               }`}
           >
             <img
@@ -741,7 +741,11 @@ function ChatWindow({
   const containerRef = useRef(null);
   const { token } = JSON.parse(localStorage.getItem("user_Data") || "{}");
   const [callStatus, setCallStatus] = useState("idle");
+<<<<<<< HEAD
   const [isVideo, setIsVideo] = useState(false);
+=======
+  const [isVideo, setIsVideo] = useState(true);
+>>>>>>> e77cfb262cecd571e8fbd4b5dc371641e5106175
   const [hasFetched, setHasFetched] = useState(false);
   const [countrow, setCountRow] = useState(0);
   const voiceRef = useRef();

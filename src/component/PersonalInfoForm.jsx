@@ -4,7 +4,6 @@ import RangeSlider from "react-range-slider-input";
 import "react-range-slider-input/dist/style.css";
 import axiosMain from "../http/axiosMain";
 
-
 function PersonalInfoForm() {
   return (
     <div>
@@ -18,20 +17,87 @@ function PersonalInfoForm() {
 function ImagesComponent() {
   const maxPhotos = 10;
   const [images, setImages] = useState(Array(maxPhotos).fill(null));
+  const [imageFiles, setImageFiles] = useState(Array(maxPhotos).fill(null)); // Store actual files
+  const [uploadedImages, setUploadedImages] = useState(Array(maxPhotos).fill(null)); // Track uploaded images
   const fileInputRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleAddPhoto = (event) => {
+  // Get user data and token
+  const getUserData = () => {
+    const storedUserData = JSON.parse(localStorage.getItem("user_Data"));
+    return storedUserData;
+  };
+
+  const handleAddPhoto = async (event) => {
     const files = event.target.files;
     if (files && files[0] && currentIndex !== null) {
-      const newImageUrl = URL.createObjectURL(files[0]);
+      const file = files[0];
+      const newImageUrl = URL.createObjectURL(file);
+
+      // Update UI immediately
       const updatedImages = [...images];
+      const updatedFiles = [...imageFiles];
       updatedImages[currentIndex] = newImageUrl;
+      updatedFiles[currentIndex] = file;
       setImages(updatedImages);
+      setImageFiles(updatedFiles);
+
+      // Upload to server
+      await uploadPhoto(file, currentIndex);
+    }
+  };
+
+  const uploadPhoto = async (file, index) => {
+    setIsUploading(true);
+    try {
+      const userData = getUserData();
+      const userId = userData?.id;
+      const token = userData?.token;
+
+      if (!userId || !token) {
+        alert("User not authenticated");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('files', file);
+
+      const response = await axiosMain.post(
+        `/users/${userId}/gallary`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            token,
+          },
+        }
+      );
+
+      // Mark as uploaded
+      const updatedUploaded = [...uploadedImages];
+      updatedUploaded[index] = true;
+      setUploadedImages(updatedUploaded);
+
+      console.log("Photo uploaded successfully:", response.data);
+    } catch (error) {
+      console.error("Photo upload failed:", error);
+      alert("Failed to upload photo. Please try again.");
+
+      // Remove from UI if upload failed
+      const updatedImages = [...images];
+      const updatedFiles = [...imageFiles];
+      updatedImages[index] = null;
+      updatedFiles[index] = null;
+      setImages(updatedImages);
+      setImageFiles(updatedFiles);
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleClickAdd = (index) => {
+    if (isUploading) return; // Prevent clicking during upload
     setCurrentIndex(index);
     fileInputRef.current.click();
   };
@@ -43,14 +109,27 @@ function ImagesComponent() {
           <div
             key={index}
             onClick={() => handleClickAdd(index)}
-            className="min-w-[10rem] h-40 bg-gray-100 rounded-md overflow-hidden border-2 border-dashed border-gray-300 flex-shrink-0 cursor-pointer relative flex items-center justify-center"
+            className={`min-w-[10rem] h-40 bg-gray-100 rounded-md overflow-hidden border-2 border-dashed border-gray-300 flex-shrink-0 cursor-pointer relative flex items-center justify-center ${isUploading && currentIndex === index ? 'opacity-50' : ''
+              }`}
           >
             {src ? (
-              <img
-                src={src}
-                alt={`Uploaded ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
+              <>
+                <img
+                  src={src}
+                  alt={`Uploaded ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                {uploadedImages[index] && (
+                  <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                    ✓
+                  </div>
+                )}
+                {isUploading && currentIndex === index && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="text-white text-sm">Uploading...</div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="flex flex-col items-center text-gray-500">
                 <PlusCircle size={28} className="mb-1 text-blue-500" />
@@ -68,14 +147,16 @@ function ImagesComponent() {
           onChange={handleAddPhoto}
         />
       </div>
+      {isUploading && (
+        <div className="text-center text-sm text-blue-600 mt-2">
+          Uploading photo...
+        </div>
+      )}
     </div>
   );
 }
 
-
-
 function PersonalInfoFormData() {
-
   const [userData, setUserData] = useState({});
   const [initialForm, setInitialForm] = useState(null);
   const [initialAbout, setInitialAbout] = useState("");
@@ -172,7 +253,7 @@ function PersonalInfoFormData() {
           setGender(transformedUserData.gender || "");
           setEmail(transformedUserData.email || "");
           setMobile(`+${transformedUserData.country_code} ${transformedUserData.number}` || "");
-          setInitialDistanceRange([18, 25]); // If backend sends actual distance, replace this line
+          setInitialDistanceRange([18, 25]);
         });
 
       // Fetch and format selected interests
@@ -197,7 +278,6 @@ function PersonalInfoFormData() {
     }
   }, []);
 
-
   useEffect(() => {
     axiosMain.get("/dropdowns").then((res) => {
       setDropdowns(res.data);
@@ -213,6 +293,24 @@ function PersonalInfoFormData() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Function to update interests API
+  const updateInterests = async (interestIds) => {
+    try {
+      await axiosMain.post(
+        "/users/interests",
+        { interest_ids: interestIds },
+        {
+          headers: {
+            token: localStorage.getItem("authToken") || token,
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Failed to update interests:", error);
+      throw error;
+    }
   };
 
   const handleUpdateProfile = async (e) => {
@@ -250,11 +348,10 @@ function PersonalInfoFormData() {
         setUserData(updatedUserData);
       }
 
-      if (formChanged || aboutChanged ) {
+      if (formChanged || aboutChanged) {
         await axiosMain.put("/personalise", {
           ...form,
           about,
-          interests: selectedInterests,
           distance_range: distanceRange,
           match_intent: "LoveCommitment"
         }, {
@@ -265,10 +362,27 @@ function PersonalInfoFormData() {
         });
       }
 
+      // Update interests separately if changed
+      if (interestsChanged) {
+        // Convert selected interests to IDs (you may need to modify this based on your data structure)
+        const interestIds = selectedInterests.map(interest => {
+          // Extract the interest name from "category-interest" format
+          const interestName = interest.split('-')[1];
+          // You might need to find the actual ID from your interests data
+          // This is a placeholder - adjust based on your actual data structure
+          return interestName;
+        });
+
+        await updateInterests(interestIds);
+      }
+
+      // Update initial states
       setInitialForm(form);
       setInitialAbout(about);
       setInitialDistanceRange(distanceRange);
       setInitialInterests(selectedInterests);
+
+      alert("Profile updated successfully!");
 
     } catch (error) {
       console.error("Update failed:", error);
@@ -289,7 +403,6 @@ function PersonalInfoFormData() {
       setSelectedInterests([...selectedInterests, interestString]);
     }
   };
-
 
   return (
     <form
@@ -384,7 +497,7 @@ function PersonalInfoFormData() {
         </div>
       </div>
 
-      <span>Genral Information</span>
+      <span>General Information</span>
 
       {/* Section 2 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -463,7 +576,7 @@ function PersonalInfoFormData() {
 
       {/* Description */}
       <div>
-        <label className="block text-sm   mb-1">About Yourself</label>
+        <label className="block text-sm mb-1">About Yourself</label>
         <textarea
           className="input"
           placeholder="Write a brief description (300 characters)"
@@ -510,8 +623,6 @@ function PersonalInfoFormData() {
           ))}
         </div>
       </div>
-
-
 
       {/* Submit Button */}
       <button
