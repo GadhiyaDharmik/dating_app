@@ -55,7 +55,7 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
   const resetFilters = () => {
     setLoading(true);
     axiosInspector
-      .get("/users/matches?start=0&limit=10")
+      .get("/users/matches?start=0&limit=8")
       .then((res) => {
         setProfiles(res.data.list || []);
       })
@@ -89,7 +89,7 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
     try {
       const params = {
         start: 0,
-        limit: 10,
+        limit: 8,
         search: searchTerm || undefined,
         min_age: ageMin || undefined,
         max_age: ageMax || undefined,
@@ -130,7 +130,7 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
     try {
       const params = {
         start: 0,
-        limit: 10,
+        limit: 8,
         search: searchTerm || undefined,
         min_age: ageMin || undefined,
         max_age: ageMax || undefined,
@@ -241,7 +241,7 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
 
               <button
                 className="text-sm text-red-500 underline"
-                onClick={resetFilters}
+                onClick={() => resetFilters()}
               >
                 Reset all
               </button>

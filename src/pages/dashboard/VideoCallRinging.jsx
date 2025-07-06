@@ -53,14 +53,15 @@ export default function VideoCallScreen({
 
   return (
     <div
-      className="w-full h-full rounded-2xl flex flex-col items-center justify-center px-4 py-8 bg-cover bg-center bg-no-repeat"
+      className={`w-full h-full rounded-2xl flex flex-col items-center justify-center py-${type !== "call_invitation" && isVideo ? "0" : "8"} bg-cover bg-center bg-no-repeat`}
       style={{
         backgroundImage: `url(${bgimg})`,
       }}
     >
+      {/* <div className="w-full h-full"> */}
       {(callStatus === "calling" && !isCaller) && <p className="text-lg font-semibold text-black mb-5">Incoming {isVideo ? "Video" : "Audio"} Call</p>}
       {/* Avatar with glowing ring */}
-      <div className="relative flex items-center justify-center w-48 h-48 overflow-visible">
+      {(callStatus === "calling" || !isVideo) && <div className="relative flex items-center justify-center w-48 h-48 overflow-visible">
         <div className="absolute inset-0 z-0">
           <div className="w-full h-full rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 blur-2xl opacity-60"></div>
         </div>
@@ -77,9 +78,9 @@ export default function VideoCallScreen({
         </div>
 
         <div className="absolute bottom-3 right-3 w-5 h-5 bg-green-500 rounded-full border-4 border-white z-20"></div>
-      </div>
+      </div>}
 
-      {callStatus === "calling" && isCaller ? (
+      {(callStatus === "calling" && isCaller) ? (
         <>
           <h2 className="text-xl font-bold text-black">{UserDetail?.name || "Michael Dam"}</h2>
 
@@ -89,9 +90,10 @@ export default function VideoCallScreen({
         </>
       ) : (
         <>
-          <h2 className="text-xl font-bold text-black">{receiverDetail?.user?.name || "Michael Dam"}</h2>
+          {(type !== "call_invitation" && !isVideo) &&
+            <h2 className="text-xl font-bold text-black">{receiverDetail?.user?.name || "Michael Dam"}</h2>}
 
-          {type !== "call_invitation" && (<div className="mt-7 text-center">
+          {(type !== "call_invitation" && !isVideo) && (<div className="mt-7 text-center">
 
             <p className="text-gray-600 mt-1 text-sm">
               Call Duration: {formatDuration(callDuration)}
@@ -181,7 +183,8 @@ export default function VideoCallScreen({
         </>
       )}
 
-
     </div>
+
+    // </div>
   );
 }

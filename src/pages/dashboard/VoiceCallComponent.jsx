@@ -129,6 +129,7 @@ import VideoCallStart from "./VideoCallStart";
 
 const APP_ID = "cb8359241f474aca9597df671df45af1";
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/users/";
+// const WS_BASE_URL = "ws://http://13.201.224.164:4444/ws/users/";
 const UserDetail = JSON.parse(localStorage.getItem("user_Data"));
 
 const VoiceCallComponent = forwardRef(
@@ -142,9 +143,59 @@ const VoiceCallComponent = forwardRef(
     const [isCaller, setIsCaller] = useState(false);
     const [remoteUsers, setRemoteUsers] = useState([]);
 
+    let cleanupInterval;
+    function startAutoTrackCleanup() {
+      // localTracks = tracks;
+
+      cleanupInterval = setInterval(() => {
+        console.log("🔍 Checking tracks...");
+
+        localTracks.forEach((track) => {
+          const isClosed = track?._isClosed || false;
+
+          if (!isClosed) {
+            console.warn(`⚠️ Track ${track._ID} still open. Forcing close.`);
+
+            try {
+              // Try stopping the raw browser MediaStreamTrack
+              if (track.mediaStreamTrack?.readyState !== "ended") {
+                track.mediaStreamTrack.stop();
+              }
+
+              // Stop & close Agora SDK track
+              if (typeof track.stop === "function") {
+                track.stop();
+              }
+
+              if (typeof track.close === "function") {
+                track.close();
+              }
+
+              track._isClosed = true; // Optional: manually mark closed
+            } catch (err) {
+              console.error("❌ Error during cleanup:", err);
+            }
+          }
+        });
+
+        // Optional: Stop interval if all are closed
+        const allClosed = localTracks.every((t) => t._isClosed);
+        if (allClosed) {
+          console.log("✅ All tracks closed. Stopping cleanup check.");
+          clearInterval(cleanupInterval);
+        }
+      }, 5000); // every 5 seconds
+    }
+
+
     const wsRef = useRef(null);
     const isJoiningRef = useRef(false);
     const channelName = peerId;
+
+
+    // useEffect(()=>{
+
+    // },[isVideo])
 
     useEffect(() => {
       const ws = new WebSocket(`${WS_BASE_URL}${userId}?authorization=${token}`);
@@ -175,7 +226,7 @@ const VoiceCallComponent = forwardRef(
             console.log("Call ended by other party");
             setCallStatus("idle");
             await leaveCall(); // ✅ ensures camera/mic stops
-            stopAllMediaTracks(localTracks);
+            // stopAllMediaTracks(localTracks);
             break;
 
           default:
@@ -398,6 +449,7 @@ const VoiceCallComponent = forwardRef(
     // };
 
     const leaveCall = async () => {
+
       for (const track of localTracks) {
         track.stop();
         track.close();
@@ -410,8 +462,31 @@ const VoiceCallComponent = forwardRef(
       if (remoteContainer) remoteContainer.innerHTML = "";
 
       await client.leave();
+
+
+
+      // if (localAudioTrack) {
+      //   localAudioTrack.stop();   // Stop the mic
+      //   localAudioTrack.close();  // Release the mic device
+      // }
       client.removeAllListeners();
 
+      if (localTracks) {
+        console.log(localTracks, "localTrackslocalTrackslocalTrackslocalTracks")
+        localTracks.forEach((track) => {
+          if (track?.mediaStreamTrack?.stop) {
+            track.mediaStreamTrack.stop(); // 🔴 Force-stop the actual hardware stream
+          }
+
+          if (!track._isClosed) {
+            track.stop();  // Stop preview
+            track.close(); // Release track
+          }
+        });
+        // localTracks.stop();   // Stop the camera preview
+        // localTracks.close();  // Release the camera device
+      }
+      startAutoTrackCleanup()
       // Clean state
       setLocalTracks([]);
       setRemoteUsers([]);
@@ -419,6 +494,10 @@ const VoiceCallComponent = forwardRef(
       setCallPopup(null);
       setIsCaller(false);
       setCallStatus("idle");
+
+      window.location.reload(); // Reload to reset UI
+
+
     };
 
 
@@ -526,6 +605,5 @@ const VoiceCallComponent = forwardRef(
 );
 
 export default VoiceCallComponent;
-
 
 

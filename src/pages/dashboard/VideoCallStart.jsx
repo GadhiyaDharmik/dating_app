@@ -48,7 +48,7 @@ const VideoCallStart = ({
   }, [localStream, remoteStream]);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center">
+    <div className="relative w-[50%] h-full flex flex-col items-center justify-center">
       {/* Remote Video Fullscreen */}
       <div
         id="remote-video"
@@ -69,18 +69,18 @@ const VideoCallStart = ({
         <IconButton className="text-cyan-600" onClick={() => onToggleMute?.(false)}>
           <Mic size={24} />
         </IconButton>
-        <IconButton className="text-cyan-600" onClick={() => onToggleMute?.(true)}>
+        {/* <IconButton className="text-cyan-600" onClick={() => onToggleMute?.(true)}>
           <MicOff size={24} />
-        </IconButton>
+        </IconButton> */}
         <IconButton className="text-cyan-600">
           <Video size={24} />
         </IconButton>
-        <IconButton className="text-cyan-600">
+        {/* <IconButton className="text-cyan-600">
           <VideoOff size={24} />
-        </IconButton>
-        <IconButton className="text-cyan-600">
+        </IconButton> */}
+        {/* <IconButton className="text-cyan-600">
           <RefreshCcw size={24} />
-        </IconButton>
+        </IconButton> */}
         <IconButton
           onClick={onEndCall}
           className="!bg-red-500 hover:!bg-red-600 !text-white !w-10 !h-10"

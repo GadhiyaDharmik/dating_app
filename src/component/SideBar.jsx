@@ -108,7 +108,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="h-screen w-72 bg-[#00A3E0] text-white flex flex-col rounded-r-[30px] shadow-xl sidebar-con overflow-auto">
+    <div className="h-screen w-72 bg-[linear-gradient(90deg,_#00D4FF_0%,_#00A3E0_100%)] text-white flex flex-col rounded-r-[30px] shadow-xl sidebar-con overflow-auto">
       {/* Logo */}
       <div className="flex flex-col items-center pt-6">
         <img src={logo} alt="Logo" className="mb-6" />
@@ -178,9 +178,9 @@ const Sidebar = () => {
           >
             <div
               className={`group flex items-center gap-3 px-4 py-4 cursor-pointer transition-all duration-300 relative overflow-hidden pl-10 shadow-none sidebar-text
-          ${active === index ? "rounded-l-2xl" : "bg-[#00A3E0] text-white/90"}
-          ${active - 1 === index ? "bg-[#00A3E0] rounded-br-4xl" : ""}
-          ${active + 1 === index ? "bg-[#00A3E0] rounded-tr-4xl" : ""}
+          ${active === index ? "rounded-l-2xl" : "bg-[linear-gradient(90deg,_#00D4FF_0%,_#00A3E0_100%)] text-white/90"}
+          ${active - 1 === index ? "bg-[linear-gradient(90deg,_#00D4FF_0%,_#00A3E0_100%)] rounded-br-4xl" : ""}
+          ${active + 1 === index ? "bg-[linear-gradient(90deg,_#00D4FF_0%,_#00A3E0_100%)] rounded-tr-4xl" : ""}
         `}
             >
               <span className="z-10">{item.icon}</span>

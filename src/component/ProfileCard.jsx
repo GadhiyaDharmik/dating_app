@@ -116,11 +116,11 @@ const ProfileCard = ({
 
       {/* Bottom Info */}
       <div className=" bottom-card-bar absolute bottom-0 w-full text-white text-center px-4 pb-3 pt-4 z-20 backdrop-blur-md bg-black/40 rounded-t-xl">
-        <h2 className="mt-3 user-detail text-base font-semibold">
+        <h2 className="mt-3 user-detail text-base font-semibold truncate">
           {name}, {age}Yr, {distance}
         </h2>
 
-        <p className="text-sm interest-user">
+        <p className="text-sm interest-user truncate">
           <strong>Interests</strong>:
           {Array.isArray(interests)
             ? ` ${interests.slice(0, 2).join(", ")}${interests.length > 2 ? "..." : ""
@@ -129,7 +129,7 @@ const ProfileCard = ({
             }`}
         </p>
 
-        <p className="text-sm interest-user">
+        <p className="text-sm interest-user truncate">
           <strong>Occupation</strong>: {occupation?.split(",")[0] || occupation}
         </p>
       </div>

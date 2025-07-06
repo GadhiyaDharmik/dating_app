@@ -1,18 +1,19 @@
-import { useEffect, useState } from "react";
-
+import { useEffect, useState, useRef, useCallback } from "react";
 import Sidebar from "../../component/SideBar.jsx";
 import ProfileCard from "../../component/ProfileCard";
 import SearchFilterBar from "../../component/SearchFilterBar";
 import StarRatingBar from "../../component/StarRatingBar";
 import axiosInspector from "../../http/axiosMain.js";
 import { useNavigate } from "react-router-dom";
-// import { axiosMain } from 'axios';
 
 function HomePage() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const [matchModal, setMatchModal] = useState(null);
   const navigate = useNavigate();
-  const [matchModal, setMatchModal] = useState(null); // stores matched user data
+  const observer = useRef();
 
   const handleInteract = (targetUserId, action, data) => {
     axiosInspector
@@ -22,14 +23,29 @@ function HomePage() {
       })
       .then((res) => {
         setProfiles((prev) => prev.filter((p) => p.id !== targetUserId));
-
         if (res.data.is_match) {
-          setMatchModal(data); // trigger modal
+          setMatchModal(data);
         }
       })
       .catch((err) => {
         console.error("Interaction failed:", err);
         alert("Interaction failed");
+      });
+  };
+
+  const loadProfiles = (pageNum = 0) => {
+    setLoading(true);
+    axiosInspector
+      .get(`/users/matches?start=${pageNum * 4}&limit=4`)
+      .then((res) => {
+        const newProfiles = res.data.list || [];
+        setProfiles((prev) => [...prev, ...newProfiles]);
+        setHasMore(newProfiles.length === 4);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch profiles", err);
+        setLoading(false);
       });
   };
 
@@ -41,34 +57,41 @@ function HomePage() {
       axiosInspector
         .get(`/users/${userId}/info`)
         .then((res) => {
-          const user = res.data;
-          // setProfiles(res.data.list || []); // Adjust based on actual structure
-          // setLoading(false);
           localStorage.setItem(
             "user_Data",
             JSON.stringify({
-              ...user,
+              ...res.data,
               token: localStorage.getItem("authToken"),
             })
           );
         })
         .catch((err) => {
-          console.error("Failed to fetch profiles", err);
-          setLoading(false);
+          console.error("Failed to fetch user data", err);
         });
     }
 
-    axiosInspector
-      .get("/users/matches?start=0&limit=10")
-      .then((res) => {
-        setProfiles(res.data.list || []); // Adjust based on actual structure
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch profiles", err);
-        setLoading(false);
-      });
+    loadProfiles(0);
   }, []);
+
+  const lastProfileRef = useCallback(
+    (node) => {
+      if (loading || !hasMore) return;
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          setPage((prevPage) => {
+            const nextPage = prevPage + 1;
+            loadProfiles(nextPage);
+            return nextPage;
+          });
+        }
+      });
+
+      if (node) observer.current.observe(node);
+    },
+    [loading, hasMore]
+  );
 
   const handleSayHello = () => {
     const targetUserId = matchModal?.id;
@@ -86,7 +109,6 @@ function HomePage() {
         },
       })
       .then((res) => {
-        console.log("Chat room created:", res.data);
         setMatchModal(null);
         navigate("/dashboard/messages");
       })
@@ -107,10 +129,9 @@ function HomePage() {
             setLoading={setLoading}
           />
 
-          {/* Scrollable card list */}
           <div className="flex-1 overflow-y-auto px-10 pt-2 pb-4 custom-scroll">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {loading ? (
+              {loading && profiles.length === 0 ? (
                 <p className="col-span-full text-center text-gray-500">
                   Loading...
                 </p>
@@ -119,90 +140,60 @@ function HomePage() {
                   No matches found.
                 </p>
               ) : (
-                profiles.map((profile, index) => (
-                  <ProfileCard
-                    id={profile.id}
-                    key={index}
-                    name={profile.name}
-                    age={profile.age}
-                    distance={"N/A"}
-                    interests={
-                      profile.interests?.map((i) => i.e_name).join(", ") ||
-                      "N/A"
-                    }
-                    occupation={profile.occupation?.e_name || "N/A"}
-                    rating={profile.score?.toString() || "0"}
-                    image={
-                      profile.profile_picture ||
-                      "https://via.placeholder.com/300"
-                    }
-                    onInteract={handleInteract}
-                  />
-                ))
+                profiles.map((profile, index) => {
+                  const isLast = profiles.length === index + 1;
+                  return (
+                    <div
+                      key={profile.id}
+                      ref={isLast ? lastProfileRef : null}
+                    >
+                      <ProfileCard
+                        id={profile.id}
+                        name={profile.name}
+                        age={profile.age}
+                        distance={"N/A"}
+                        interests={
+                          profile.interests
+                            ?.map((i) => i.e_name)
+                            .join(", ") || "N/A"
+                        }
+                        occupation={
+                          Array.isArray(profile.occupation)
+                            ? profile.occupation
+                                .slice(0, 2)
+                                .map((item) => item.e_name)
+                                .join(", ") +
+                              (profile.occupation.length > 2 ? "..." : "")
+                            : profile.occupation?.e_name || "N/A"
+                        }
+                        onInteract={handleInteract}
+                      />
+                    </div>
+                  );
+                })
               )}
             </div>
+            {loading && profiles.length > 0 && (
+              <p className="text-center text-sm text-gray-400 mt-4">
+                Loading more...
+              </p>
+            )}
           </div>
         </div>
       </div>
+
       {matchModal && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white shadow-xl rounded-2xl p-6 w-[90%] max-w-sm text-center border border-blue-200 z-[9999]">
-          {/* Floating hearts (optional small decor) */}
-          {/* <div className="absolute top-2 left-4 animate-ping">
-            <img
-              src="/hearts/pink-heart.png"
-              alt=""
-              className="w-4 h-4 opacity-60"
-            />
-          </div>
-          <div className="absolute bottom-2 right-4 animate-ping">
-            <img
-              src="/hearts/blue-heart.png"
-              alt=""
-              className="w-5 h-5 opacity-60"
-            />
-          </div> */}
-
-          {/* Heart-framed images */}
-          {/* <div className="flex justify-center gap-4 items-center mb-4">
-            <div className="relative w-24 h-24 rounded-full border-4 border-cyan-400 overflow-hidden">
-              <img
-                src={
-                  JSON.parse(localStorage.getItem("user_Data"))
-                    ?.profile_picture || "/defaultUser.png"
-                }
-                alt="You"
-                className="object-cover w-full h-full"
-              />
-            </div>
-            <div className="relative w-24 h-24 rounded-full border-4 border-cyan-400 overflow-hidden">
-              <img
-                src={matchModal.profile_picture || "/defaultUser.png"}
-                alt={matchModal.name}
-                className="object-cover w-full h-full"
-              />
-            </div>
-          </div> */}
-
-          {/* Text */}
           <p className="text-lg text-blue-600 font-semibold mb-3">
             You and <span className="capitalize">{matchModal.name}</span> liked
             each other
           </p>
-
-          {/* Buttons */}
           <button
             className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold py-2 px-6 rounded-full"
             onClick={handleSayHello}
           >
             SAY HELLO!
           </button>
-
-          {/* <button
-            className="block mt-3 text-sm text-gray-500 underline"
-            onClick={() => setMatchModal(null)}
-          >
-            Maybe later
-          </button> */}
         </div>
       )}
     </>

@@ -3,6 +3,7 @@ import axios from "axios";
 
 const axiosInspector = axios.create({
   baseURL: "https://loveai-api.vrajtechnosys.in",
+  // baseURL: "http://13.201.224.164:4444/",
   headers: {
     "Content-Type": "application/json",
     
