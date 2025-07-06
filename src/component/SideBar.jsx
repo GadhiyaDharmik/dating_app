@@ -32,7 +32,7 @@ const navItems = [
     icon: <MessageCircle size={18} />,
     navigate: "/dashboard/messages",
   },
-  { label: "Personal Information", icon: <User size={18} /> },
+  { label: "Personal Information", icon: <User size={18} />, navigate: "/dashboard/personalInfo" },
   { label: "Privacy & Permission", icon: <Lock size={18} /> },
   { label: "Security", icon: <Shield size={18} /> },
   { label: "Data & Storage", icon: <Database size={18} /> },
