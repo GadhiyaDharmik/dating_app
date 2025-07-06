@@ -6,6 +6,7 @@ import BlankHeart from "../assets/blank heart.svg";
 import PinkHeart from "../assets/pink heart logo.svg";
 import BlueHeart from "../assets/blue heart.svg";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const GradientHeart = ({ filled }) => {
   return (
@@ -74,8 +75,13 @@ export const HeartRating = () => {
 };
 
 const StarRatingBar = () => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate("/dashboard/subscription");
+  };
   return (
-    <div className="w-full flex justify-between items-center p-4 pr-8 bg-white shadow h-[14vh]">
+    <div className="w-full flex justify-between items-center p-4 pr-8 bg-white shadow h-[14vh] mb-4">
       <div className="flex flex-col">
         <div className="flex items-center justify-center gap-2 text-sm text-gray-700">
           <span className="text-[12px] font-bold ">Good deeds points</span>
@@ -85,9 +91,13 @@ const StarRatingBar = () => {
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="flex bg-gradient-to-l from-[#FF9999] to-[#FFC5C5] rounded-2xl py-2 px-5 text-white font-medium shadow-md">
+        <button className="flex bg-gradient-to-l from-[#FF9999] to-[#FFC5C5] rounded-2xl py-2 px-5 text-white font-medium shadow-md" onClick={handleClick}
+        >
+
           <Crown className="mr-2" />
+
           Upgrade Now
+
         </button>
 
         <div className="relative">

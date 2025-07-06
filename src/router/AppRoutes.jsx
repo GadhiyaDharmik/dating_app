@@ -42,11 +42,18 @@ function AppRoutes() {
         <Route path="/profile/ideal-match" element={<IdealMatchPage />} />
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/subscription" element={<SubscriptionPlans />} />
+
         <Route path="/videocallstart" element={<VideoCallScreen />} />
         <Route path="/videocalling" element={<VideoCallStart />} />
         <Route path="/helpcenter" element={<Faq />} />
         {/* Protected Routes */}
+
+        <Route path="/dashboard/subscription" element={
+          <PrivateRoute>
+            <DashboardLayout>
+              <SubscriptionPlans />
+            </DashboardLayout>
+          </PrivateRoute>} />
         <Route
           path="/dashboard/home"
           element={

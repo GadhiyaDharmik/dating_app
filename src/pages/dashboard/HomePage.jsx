@@ -122,7 +122,7 @@ function HomePage() {
     <>
       <div className="flex bg-gray-100 min-h-screen">
         <div className="flex flex-col w-full gap-4 max-h-screen">
-          <StarRatingBar />
+          {/* <StarRatingBar /> */}
           <SearchFilterBar
             profiles={profiles}
             setProfiles={setProfiles}
@@ -151,6 +151,7 @@ function HomePage() {
                         id={profile.id}
                         name={profile.name}
                         age={profile.age}
+                        image={profile.profile_picture}
                         distance={"N/A"}
                         interests={
                           profile.interests

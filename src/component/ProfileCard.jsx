@@ -1,9 +1,10 @@
-import tick from "../assets/tick.svg";
+import tick from "../assets/verifiedIcon.svg";
 import cross from "../assets/cross.svg";
 import star from "../assets/star.svg";
 import heart from "../assets/heart.svg";
 import blueheart from "../assets/blueheart.png";
 import goldenheart from "../assets/goldenheart.svg";
+import { useLocation } from "react-router-dom";
 
 const ProfileCard = ({
   id,
@@ -17,6 +18,12 @@ const ProfileCard = ({
   onInteract,
   flag = "home",
 }) => {
+
+  const location = useLocation();
+
+  const isDashboardHome = location.pathname === "/dashboard/home";
+
+  // if (!isDashboardHome) return null;
   return (
     <div className="relative w-full max-w-[290px] h-[24rem] rounded-3xl overflow-hidden shadow-2xl  bg-white">
       {/* Background Image */}
@@ -30,11 +37,16 @@ const ProfileCard = ({
 
       {/* Rating Badge */}
       <div className="rating-badge absolute top-0 left-0 z-20 flex items-center text-white text-sm">
-        <div className="relative w-8 h-8">
-          <img src={goldenheart} alt="golden heart" className="w-full h-full" />
-          <img src={blueheart} alt="blue heart" className="blueheart-icon" />
+        <div className="flex items-center space-x-1">
+          <div className="relative w-6 h-6">
+            <img src={goldenheart} alt="golden heart" className="w-full h-full" />
+            <img src={blueheart} alt="blue heart" className="absolute inset-0 w-3 h-3 m-auto" />
+          </div>
         </div>
-        <span className="ml-2 font-semibold">{rating}</span>
+
+        {isDashboardHome ? <span className="ml-2 font-semibold">{3.5}</span> :
+          <span className="text-white text-sm font-medium">{rating}</span>}
+
       </div>
 
       {/* Verified Tick */}

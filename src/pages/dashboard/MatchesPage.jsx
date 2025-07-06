@@ -100,7 +100,7 @@ function MatchesPage() {
     <>
       <div className="flex bg-gray-100 min-h-screen">
         <div className="flex flex-col w-full gap-4 max-h-screen">
-          <StarRatingBar />
+          {/* <StarRatingBar /> */}
           <SearchFilterBar
             profiles={profiles}
             setProfiles={setProfiles}

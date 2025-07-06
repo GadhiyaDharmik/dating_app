@@ -669,6 +669,7 @@ import axios from "axios";
 const WS_BASE_URL = "wss://loveai-api.vrajtechnosys.in/ws/chat/";
 
 function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
+
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 font-semibold text-lg">Messages</div>
@@ -690,13 +691,13 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
               setSelectedId(room.chat_room_id);
             }}
             className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 ${selectedId === room.chat_room_id
-                ? "bg-[#E8F8FF]"
-                : "hover:bg-gray-50"
+              ? "bg-[#E8F8FF]"
+              : "hover:bg-gray-50"
               }`}
           >
             <img
               src={room.user?.url || userImg}
-              className="w-10 h-10  object-cover"
+              className="w-10 h-10  object-cover  rounded-lg"
             />
             <div className="flex-1">
               <div className="font-medium text-sm">{room.user?.name}</div>
@@ -1010,189 +1011,189 @@ function ChatWindow({
 
 
 
-return (
-  <div className="flex flex-col h-full w-full bg-white overflow-hidden">
-    {/* Header */}
-    <div className="flex items-center gap-3 border-b px-6 py-4 bg-white">
-      <img
-        src={resiverDetail?.user?.url || userImg}
-        className="w-10 h-10 rounded-full object-cover"
-      />
-      <div className="flex-1">
-        <div className="font-semibold">{resiverDetail?.user?.name}</div>
-        <div className="text-xs text-green-500">
-          {resiverDetail?.user?.is_online ? "Online" : "Offline"}
-        </div>
-      </div>
-      <div className="flex gap-2 items-center">
-        <button
-          className="w-10 h-10 flex items-center justify-center rounded-md bg-[linear-gradient(95.88deg,_rgba(255,197,197,0.2)_-2.12%)]"
-          onClick={() => {
-            setIsVideo(true);
-            handleVoiceCall();
-          }}
-        >
-          <img src={videoCall} alt="video call" />
-        </button>
-        <button
-          className="w-10 h-10 flex items-center justify-center rounded-md bg-[linear-gradient(108.95deg, rgba(76, 200, 42, 0.16) -1.3%)]"
-          onClick={() => {
-            setIsVideo(false);
-            handleVoiceCall();
-          }}
-        >
-          <img src={Call} alt="Call Button" />
-        </button>
-
-        <VoiceCallComponent
-          ref={voiceRef}
-          peerId={resiverDetail?.chat_room_id}
-          userId={userId}
-          receiverId={resiverDetail?.user?.id}
-          receiverDetail={resiverDetail}
-          isVideo={isVideo}
-          token={token}
-          callStatus={callStatus}
-          setCallStatus={setCallStatus}
+  return (
+    <div className="flex flex-col h-full w-full bg-white overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b px-6 py-4 bg-white">
+        <img
+          src={resiverDetail?.user?.url || userImg}
+          className="w-10 h-10 rounded-full object-cover"
         />
-      </div>
-    </div>
-
-    {/* Messages */}
-    <div
-      ref={containerRef}
-      className="flex-1 w-full px-6 py-4 space-y-3 overflow-y-auto custom-scroll max-h-[calc(100vh-180px)]"
-    >
-      {[...(room.chat || [])].reverse().map((m, i) => (
-        <div
-          key={i}
-          className={`flex gap-2 ${
-            m.isMe ? "justify-end" : "justify-start"
-          } items-end`}
-        >
-          {!m.isMe && (
-            <img
-              src={resiverDetail?.user?.url || userImg}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-          )}
-          <div
-            className={`text-sm sm:text-base rounded-xl px-4 py-2 shadow ${
-              m.isMe ? "bg-[#979797] text-white" : "bg-gray-100 text-gray-900"
-            } max-w-[75%] sm:max-w-[65%] break-words whitespace-pre-wrap`}
-          >
-            {["Image", "Gif"].includes(m.message_type) ? (
-              <div className="overflow-hidden border max-w-[250px] bg-white shadow-md border-[#00A3E0]">
-                <img
-                  src={m.message || nullimage}
-                  alt="chat-media"
-                  className="object-contain h-[200px] w-full"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = nullimage;
-                  }}
-                />
-              </div>
-            ) : m.message_type === "Video" ? (
-              <video controls className="rounded-md max-w-full">
-                <source src={m.message} type="video/mp4" />
-              </video>
-            ) : m.message_type === "File" ? (
-              <a
-                href={m.message}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                Download File
-              </a>
-            ) : (
-              m.message
-            )}
+        <div className="flex-1">
+          <div className="font-semibold">{resiverDetail?.user?.name}</div>
+          <div className="text-xs text-green-500">
+            {resiverDetail?.user?.is_online ? "Online" : "Offline"}
           </div>
         </div>
-      ))}
-    </div>
+        <div className="flex gap-2 items-center">
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-md bg-[linear-gradient(95.88deg,_rgba(255,197,197,0.2)_-2.12%)]"
+            onClick={() => {
+              setIsVideo(true);
+              handleVoiceCall();
+            }}
+          >
+            <img src={videoCall} alt="video call" />
+          </button>
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-md bg-[linear-gradient(108.95deg, rgba(76, 200, 42, 0.16) -1.3%)]"
+            onClick={() => {
+              setIsVideo(false);
+              handleVoiceCall();
+            }}
+          >
+            <img src={Call} alt="Call Button" />
+          </button>
 
-    {/* File Preview */}
-    {pendingFiles.length > 0 && (
-      <div className="flex gap-2 px-4 pb-2 overflow-x-auto">
-        {pendingFiles.map((file, idx) => {
-          const url = URL.createObjectURL(file);
-          return file.type.startsWith("image/") ? (
-            <img
-              key={idx}
-              src={url}
-              className="w-16 h-16 rounded object-cover"
-              alt="preview"
-            />
-          ) : file.type.startsWith("video/") ? (
-            <video key={idx} src={url} className="w-16 h-16 rounded" muted />
-          ) : (
+          <VoiceCallComponent
+            ref={voiceRef}
+            peerId={resiverDetail?.chat_room_id}
+            userId={userId}
+            receiverId={resiverDetail?.user?.id}
+            receiverDetail={resiverDetail}
+            isVideo={isVideo}
+            token={token}
+            callStatus={callStatus}
+            setCallStatus={setCallStatus}
+          />
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div
+        ref={containerRef}
+        className="flex-1 w-full px-6 py-4 space-y-3 overflow-y-auto custom-scroll max-h-[calc(100vh-180px)]"
+      >
+        {[...(room.chat || [])].reverse().map((m, i) => {
+          const showAvatar = i == 0 || room.chat[i - 1]?.isMe === m?.isMe;
+          console.log(showAvatar, "showAvatarshowAvatarshowAvatar", room.chat[i - 1]?.isMe, m?.isMe)
+          return (<div
+            key={i}
+            className={`flex gap-2 ${m.isMe ? "justify-end" : "justify-start"
+              } items-end`}
+          >
+            {!showAvatar && (
+              <img
+                src={resiverDetail?.user?.url || userImg}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            )}
             <div
-              key={idx}
-              className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-sm"
+              className={`text-sm sm:text-base rounded-xl px-4 py-2 shadow ${m.isMe ? "bg-[#979797] text-white" : "bg-gray-100 text-gray-900"
+                } max-w-[75%] sm:max-w-[65%] break-words whitespace-pre-wrap`}
             >
-              📄
+              {["Image", "Gif"].includes(m.message_type) ? (
+                <div className="overflow-hidden border max-w-[250px] bg-white shadow-md border-[#00A3E0]">
+                  <img
+                    src={m.message || nullimage}
+                    alt="chat-media"
+                    className="object-contain h-[200px] w-full"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = nullimage;
+                    }}
+                  />
+                </div>
+              ) : m.message_type === "Video" ? (
+                <video controls className="rounded-md max-w-full">
+                  <source src={m.message} type="video/mp4" />
+                </video>
+              ) : m.message_type === "File" ? (
+                <a
+                  href={m.message}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  Download File
+                </a>
+              ) : (
+                m.message
+              )}
             </div>
-          );
+          </div>)
         })}
       </div>
-    )}
 
-    {/* Input Area */}
-    <div className="border-t px-4 py-3 flex items-center bg-white gap-2 relative">
-      <img
-        src="https://icons.getbootstrap.com/assets/icons/emoji-smile.svg"
-        alt="emoji"
-        className="w-6 h-6 cursor-pointer"
-        onClick={() => setShowPicker(!showPicker)}
-      />
-      {showPicker && (
-        <div className="absolute bottom-14 left-2 z-50">
-          <EmojiPicker onEmojiClick={onEmojiClick} />
+      {/* File Preview */}
+      {pendingFiles.length > 0 && (
+        <div className="flex gap-2 px-4 pb-2 overflow-x-auto">
+          {pendingFiles.map((file, idx) => {
+            const url = URL.createObjectURL(file);
+            return file.type.startsWith("image/") ? (
+              <img
+                key={idx}
+                src={url}
+                className="w-16 h-16 rounded object-cover"
+                alt="preview"
+              />
+            ) : file.type.startsWith("video/") ? (
+              <video key={idx} src={url} className="w-16 h-16 rounded" muted />
+            ) : (
+              <div
+                key={idx}
+                className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-sm"
+              >
+                📄
+              </div>
+            );
+          })}
         </div>
       )}
 
-      <input
-        type="file"
-        id="media-upload"
-        className="hidden"
-        multiple
-        onChange={(e) => {
-          const files = Array.from(e.target.files || []);
-          setPendingFiles((prev) => [...prev, ...files]);
-        }}
-      />
-      <button
-        onClick={() => document.getElementById("media-upload").click()}
-        className="p-2 rounded-full"
-      >
-        <Paperclip />
-      </button>
+      {/* Input Area */}
+      <div className="border-t px-4 py-3 flex items-center bg-white gap-2 relative">
+        <img
+          src="https://icons.getbootstrap.com/assets/icons/emoji-smile.svg"
+          alt="emoji"
+          className="w-6 h-6 cursor-pointer"
+          onClick={() => setShowPicker(!showPicker)}
+        />
+        {showPicker && (
+          <div className="absolute bottom-14 left-2 z-50">
+            <EmojiPicker onEmojiClick={onEmojiClick} />
+          </div>
+        )}
 
-      <input
-        type="text"
-        placeholder="Type a message…"
-        className="flex-1 px-4 py-2 text-sm rounded-full border border-gray-200 shadow-sm focus:outline-none"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-          }
-        }}
-      />
-      <button
-        onClick={handleSend}
-        className="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-md"
-      >
-        <Send size={18} />
-      </button>
+        <input
+          type="file"
+          id="media-upload"
+          className="hidden"
+          multiple
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            setPendingFiles((prev) => [...prev, ...files]);
+          }}
+        />
+        <button
+          onClick={() => document.getElementById("media-upload").click()}
+          className="p-2 rounded-full"
+        >
+          <Paperclip />
+        </button>
+
+        <input
+          type="text"
+          placeholder="Type a message…"
+          className="flex-1 px-4 py-2 text-sm rounded-full border border-gray-200 shadow-sm focus:outline-none"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+        />
+        <button
+          onClick={handleSend}
+          className="p-2 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-md"
+        >
+          <Send size={18} />
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
 
 }
 
@@ -1368,6 +1369,7 @@ export default function MessagePage() {
         countMessage={countMessage}
         totalCount={totalCount}
         setTotalCount={setTotalCount}
+      // resiverDetail
       />
       {/* {showVoiceCall && (
         <VideoCallScreen />
