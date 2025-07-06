@@ -424,11 +424,27 @@ export default function SearchFilterBar({ setProfiles, setLoading }) {
           />
 
           {/* Verify Profile */}
-          <FilterSection
+          {/* <FilterSection
             label="Verify Profile"
             options={["Unverify", "Verify"]}
             selected={isVerified == null ? [] : [String(isVerified)]}
             onToggle={(v) => setIsVerified(v === "Verify")}
+          /> */}
+          <FilterSection
+            label="Verify Profile"
+            options={["Unverify", "Verify"]}
+            selected={
+              isVerified === true ? ["Verify"] :
+                isVerified === false ? ["Unverify"] :
+                  []
+            }
+            onToggle={(val) =>
+              setIsVerified(
+                isVerified === (val === "Verify")
+                  ? null // unselect if already selected
+                  : val === "Verify"
+              )
+            }
           />
 
           {/* Footer */}

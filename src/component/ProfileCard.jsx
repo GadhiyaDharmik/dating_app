@@ -46,7 +46,7 @@ const ProfileCard = ({
       {flag !== "matches" && (
         <div className="action-buttons absolute bottom-20 w-full z-20 flex justify-center items-center gap-3">
           <div className="flex flex-col items-center">
-            <button
+            {/* <button
               className="cross-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white"
               onClick={() =>
                 onInteract(id, "pass", {
@@ -66,13 +66,77 @@ const ProfileCard = ({
                 alt="pass"
                 className="w-full h-full object-contain"
               />
-            </button>
+            </button> */}
+            <div className="relative flex flex-col items-center group">
+              <button
+                className="cross-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white bg-red-300"
+                onClick={() =>
+                  onInteract(id, "pass", {
+                    id,
+                    name,
+                    age,
+                    distance,
+                    interests,
+                    occupation,
+                    rating,
+                    image,
+                  })
+                }
+              >
+                <img
+                  src={cross}
+                  alt="pass"
+                  className="w-full h-full object-contain"
+                />
+              </button>
+
+              {/* Tooltip */}
+              <div className="absolute bottom-8 z-10 flex-col items-center hidden mb-2 group-hover:flex">
+                <div className="relative px-2 py-1 text-sm text-black bg-white rounded-md shadow-lg font-medium">
+                  Pass
+                  <div className="absolute left-1/2 -bottom-1.5 transform -translate-x-1/2 w-3 h-3 bg-white rotate-45 z-0"></div>
+                </div>
+              </div>
+            </div>
+
+
           </div>
           <div className="flex flex-col items-center">
-            <button
-              className="heart-button h-12 w-12 p-2 rounded-full shadow-md border-2 border-white"
-              onClick={() =>
-                onInteract(id, "save", {
+            <div className="relative flex flex-col items-center group">
+              <button
+                className="heart-button h-12 w-12 p-2 rounded-full shadow-md border-2 border-white"
+                onClick={() =>
+                  onInteract(id, "save", {
+                    id,
+                    name,
+                    age,
+                    distance,
+                    interests,
+                    occupation,
+                    rating,
+                    image,
+                  })
+                }
+              >
+                <img
+                  src={heart}
+                  alt="heart"
+                  className="w-full h-full object-contain"
+                />
+              </button>
+              {/* Tooltip */}
+              <div className="absolute bottom-10 z-10 flex-col items-center hidden mb-2 group-hover:flex">
+                <div className="relative px-2 py-1 text-sm text-black bg-white rounded-md shadow-lg font-medium">
+                  Save
+                  <div className="absolute left-1/2 -bottom-1.5 transform -translate-x-1/2 w-3 h-3 bg-white rotate-45 z-0"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="relative flex flex-col items-center group">
+              <button className="star-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white" onClick={() =>
+                onInteract(id, "like", {
                   id,
                   name,
                   age,
@@ -82,34 +146,21 @@ const ProfileCard = ({
                   rating,
                   image,
                 })
-              }
-            >
-              <img
-                src={heart}
-                alt="heart"
-                className="w-full h-full object-contain"
-              />
-            </button>
-          </div>
-          <div className="flex flex-col items-center">
-            <button className="star-button h-10 w-10 p-2 rounded-full shadow-md border-2 border-white" onClick={() =>
-              onInteract(id, "like", {
-                id,
-                name,
-                age,
-                distance,
-                interests,
-                occupation,
-                rating,
-                image,
-              })
-            }>
-              <img
-                src={star}
-                alt="like"
-                className="w-full h-full object-contain"
-              />
-            </button>
+              }>
+                <img
+                  src={star}
+                  alt="like"
+                  className="w-full h-full object-contain"
+                />
+              </button>
+              {/* Tooltip */}
+              <div className="absolute bottom-8 z-10 flex-col items-center hidden mb-2 group-hover:flex">
+                <div className="relative px-2 py-1 text-sm text-black bg-white rounded-md shadow-lg font-medium">
+                  Like
+                  <div className="absolute left-1/2 -bottom-1.5 transform -translate-x-1/2 w-3 h-3 bg-white rotate-45 z-0"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

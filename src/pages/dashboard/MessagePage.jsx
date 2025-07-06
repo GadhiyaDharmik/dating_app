@@ -35,11 +35,10 @@ function MessageList({ rooms, selectedId, setSelectedId, setResiverDetail }) {
               setResiverDetail(room);
               setSelectedId(room.chat_room_id);
             }}
-            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 ${
-              selectedId === room.chat_room_id
+            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all rounded-xl m-2 ${selectedId === room.chat_room_id
                 ? "bg-[#E8F8FF]"
                 : "hover:bg-gray-50"
-            }`}
+              }`}
           >
             <img
               src={room.user?.url || userImg}
@@ -135,10 +134,9 @@ function ChatWindow({
     let limit = 25;
     axiosInspector
       .get(
-        `/chatrooms/${selectedId}/chats?start=${
-          countrow === 0
-            ? room?.chat?.length
-            : countMessage < countrow
+        `/chatrooms/${selectedId}/chats?start=${countrow === 0
+          ? room?.chat?.length
+          : countMessage < countrow
             ? countMessage
             : countrow
         }&limit=${limit}`,
@@ -417,9 +415,8 @@ function ChatWindow({
         {[...(room.chat || [])].reverse().map((m, i) => (
           <div
             key={i}
-            className={`flex gap-2 ${
-              m.isMe ? "justify-end" : "justify-start"
-            } items-end`}
+            className={`flex gap-2 ${m.isMe ? "justify-end" : "justify-start"
+              } items-end`}
           >
             {!m.isMe && (
               <img
@@ -428,9 +425,8 @@ function ChatWindow({
               />
             )}
             <div
-              className={`rounded-sm text-xl p-1 max-w-[70%] shadow ${
-                m.isMe ? "bg-[#979797] text-white" : "bg-gray-100 text-gray-900"
-              }`}
+              className={`rounded-sm text-xl p-1 max-w-[70%] shadow ${m.isMe ? "bg-[#979797] text-white" : "bg-gray-100 text-gray-900"
+                }`}
             >
               {["Image", "Gif"].includes(m.message_type) ? (
                 <div className="overflow-hidden border max-w-[250px] bg-white shadow-md border-[#00A3E0]">
@@ -605,10 +601,10 @@ export default function MessagePage() {
             prev.map((r) =>
               r.chat_room_id === room_id
                 ? {
-                    ...r,
-                    chat: [{ message, isMe, message_type }, ...r.chat],
-                    lastMessage: message,
-                  }
+                  ...r,
+                  chat: [{ message, isMe, message_type }, ...r.chat],
+                  lastMessage: message,
+                }
                 : r
             )
           );
@@ -650,13 +646,13 @@ export default function MessagePage() {
         prev.map((r) =>
           r.chat_room_id === selectedId
             ? {
-                ...r,
-                chat: [
-                  { message: msg, isMe: true, message_type: type },
-                  ...r.chat,
-                ],
-                lastMessage: msg,
-              }
+              ...r,
+              chat: [
+                { message: msg, isMe: true, message_type: type },
+                ...r.chat,
+              ],
+              lastMessage: msg,
+            }
             : r
         )
       );
