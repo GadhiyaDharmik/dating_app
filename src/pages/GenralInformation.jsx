@@ -152,14 +152,19 @@ function GeneralInfoFormComponent({ formRef }) {
         </div>
       ))}
 
-      {feedback && (
-        <p
-          className={`text-center text-sm ${feedback.startsWith("❌") ? "text-red-600" : "text-green-600"
-            }`}
-        >
-          {feedback}
-        </p>
-      )}
+    <div className="min-h-[24px] mt-2 text-center text-sm transition-all duration-200 ease-in-out">
+    <p
+      className={`transition-opacity duration-200 ${
+        feedback
+          ? feedback.startsWith("❌")
+            ? "text-red-600 opacity-100"
+            : "text-green-600 opacity-100"
+          : "opacity-0"
+      }`}
+    >
+      {feedback || "‎"}
+    </p>
+  </div>
 
       {/* <button
         type="submit"

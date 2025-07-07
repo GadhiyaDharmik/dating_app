@@ -4,10 +4,10 @@ import { useNavigate } from "react-router-dom";
 import axiosMain from "../http/axiosMain"; // ← your axios instance
 import { auth, provider, signInWithPopup } from "../Auth/firebase"; // adjust path as needed
 import showPasswords from "../assets/showPassword.svg";
-import NotshowPassword from "../assets/NotshowPassword.svg"
-import google from "../assets/google.svg"
-import facebook from "../assets/facebook.svg"
-
+import NotshowPassword from "../assets/NotshowPassword.svg";
+import google from "../assets/google.svg";
+import facebook from "../assets/facebook.svg";
+import { Mail, Phone } from "lucide-react";
 
 function LoginPage() {
   return (
@@ -31,7 +31,9 @@ function LoginComponent() {
   const [feedback, setFeedback] = useState("");
   const [countries, setCountries] = useState([]);
   const [countryCode, setCountryCode] = useState("+91");
-  const [selectedFlag, setSelectedFlag] = useState("https://flagcdn.com/w40/in.png");
+  const [selectedFlag, setSelectedFlag] = useState(
+    "https://flagcdn.com/w40/in.png"
+  );
 
   useEffect(() => {
     const fetchCountries = async () => {
@@ -41,7 +43,8 @@ function LoginComponent() {
         );
         const formatted = res.data
           .map((country) => {
-            const dialCode = country.idd?.root + (country.idd?.suffixes?.[0] || "");
+            const dialCode =
+              country.idd?.root + (country.idd?.suffixes?.[0] || "");
             if (!dialCode) return null;
 
             return {
@@ -61,7 +64,6 @@ function LoginComponent() {
 
     fetchCountries();
   }, []);
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,14 +138,21 @@ function LoginComponent() {
     }
   };
 
-
   return (
     <div className="max-w-md mx-auto mt-10 p-4 rounded-xl">
       <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
         Login
       </h2>
 
-      <p className="mb-4 text-center" style={{ color: '#111111', fontWeight: '400', fontSize: '14px', fontFamily: 'Rubik,sans-serif' }}>
+      <p
+        className="mb-4 text-center"
+        style={{
+          color: "#111111",
+          fontWeight: "400",
+          fontSize: "14px",
+          fontFamily: "Rubik,sans-serif",
+        }}
+      >
         {/* You can login using either your mobile number or your email address. */}
         Email or Phone Number
       </p>
@@ -215,6 +224,7 @@ function LoginComponent() {
         </div> */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+            <Phone color="#00A3E0" size={15} />
             Mobile Number
           </label>
 
@@ -225,7 +235,9 @@ function LoginComponent() {
             <select
               value={countryCode}
               onChange={(e) => {
-                const selected = countries.find(c => c.code === e.target.value);
+                const selected = countries.find(
+                  (c) => c.code === e.target.value
+                );
                 setCountryCode(selected.code);
                 setSelectedFlag(selected.flag);
               }}
@@ -233,7 +245,9 @@ function LoginComponent() {
             >
               {countries.map((c) => (
                 <option key={c.code} value={c.code}>
-                  {countryCode === c.code ? `${c.code}` : `${c.name} (${c.code})`}
+                  {countryCode === c.code
+                    ? `${c.code}`
+                    : `${c.name} (${c.code})`}
                 </option>
               ))}
             </select>
@@ -248,7 +262,6 @@ function LoginComponent() {
           </div>
         </div>
 
-
         {/* Divider */}
         <div className="flex items-center my-4">
           <div className="flex-grow border-t border-gray-300"></div>
@@ -259,6 +272,7 @@ function LoginComponent() {
         {/* Email / Username Input */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+            <Mail color="#00A3E0" size={15} />
             Email
           </label>
           <input
@@ -277,7 +291,6 @@ function LoginComponent() {
           </label>
 
           <div className="relative">
-
             <input
               type={showPassword ? "text" : "password"}
               value={password}
@@ -292,10 +305,18 @@ function LoginComponent() {
             >
               {showPassword ? (
                 // SVG for "show password" (eye open)
-                <img src={showPasswords} alt="showPassword" className="w-5 h-5" />
+                <img
+                  src={showPasswords}
+                  alt="showPassword"
+                  className="w-5 h-5"
+                />
               ) : (
                 // Image for "hide password" (eye-slash)
-                <img src={NotshowPassword} alt="HidePassword" className="w-5 h-5" />
+                <img
+                  src={NotshowPassword}
+                  alt="HidePassword"
+                  className="w-5 h-5"
+                />
               )}
             </button>
           </div>
@@ -308,11 +329,12 @@ function LoginComponent() {
           <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
-        <div className="flex justify-center gap-4 mb-4">
+        <div className="flex justify-center gap-6 mb-4">
           <button
             type="button"
-            className="flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+            className="w-32 flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700  transition"
             onClick={handleGoogleLogin}
+            style={{ border: "1px solid #98939433" }}
           >
             <img
               // src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
@@ -326,10 +348,11 @@ function LoginComponent() {
 
           <button
             type="button"
-            className="flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+            className="w-32 flex items-center border rounded-lg px-4 py-2 text-sm text-gray-700 transition"
             onClick={() => {
               console.log("Facebook Login");
             }}
+            style={{ border: "1px solid #98939433" }}
           >
             <img
               // src="https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png"
