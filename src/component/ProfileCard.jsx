@@ -17,6 +17,7 @@ const ProfileCard = ({
   image,
   onInteract,
   flag = "home",
+  handleShowAboutUser
 }) => {
 
   const location = useLocation();
@@ -25,7 +26,9 @@ const ProfileCard = ({
 
   // if (!isDashboardHome) return null;
   return (
-    <div className="relative w-full max-w-[290px] h-[24rem] rounded-3xl overflow-hidden shadow-2xl  bg-white">
+    <div className="relative w-full max-w-[290px] h-[24rem] rounded-3xl overflow-hidden shadow-2xl  bg-white" style={{ cursor: "pointer" }}
+      onClick={() => handleShowAboutUser(id)}
+    >
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center"

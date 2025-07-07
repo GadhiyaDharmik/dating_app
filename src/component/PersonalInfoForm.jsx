@@ -14,6 +14,8 @@ function PersonalInfoForm() {
   );
 }
 
+const maxSelection = 5;
+
 function ImagesComponent() {
   const maxPhotos = 10;
   const [images, setImages] = useState(Array(maxPhotos).fill(null));
@@ -47,7 +49,7 @@ function ImagesComponent() {
         });
 
         const fetchedImages = response?.data || [];
-        console.log("kanjjjj",fetchedImages);
+        console.log("kanjjjj", fetchedImages);
 
         const updatedImages = Array(maxPhotos).fill(null);
         const updatedUploaded = Array(maxPhotos).fill(null);
@@ -56,7 +58,7 @@ function ImagesComponent() {
           if (index < maxPhotos && img.url) {
             updatedImages[index] = img.url;
             updatedUploaded[index] = true;
-            console.log("kanjjjj",updatedImages[index]);
+            console.log("kanjjjj", updatedImages[index]);
           }
         });
 
@@ -230,17 +232,28 @@ function PersonalInfoFormData() {
   const [email, setEmail] = useState("");
   const [dropdowns, setDropdowns] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [allInterests, setAllInterests] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]); // store category IDs
+  const [feedback, setFeedback] = useState("");
 
-  const interests = {
-    Sports: ["Cricket", "Football", "Swimming"],
-    Entertainment: ["Comedy", "Movies", "Music"],
-    Wellness: ["Outdoors", "Fitness", "Meditation", "Weights"],
-    Health: ["Health", "Life", "Weddings", "Dating", "Grownuping", "Relationships"]
-  };
+
+  // const interests = {
+  //   Sports: ["Cricket", "Football", "Swimming"],
+  //   Entertainment: ["Comedy", "Movies", "Music"],
+  //   Wellness: ["Outdoors", "Fitness", "Meditation", "Weights"],
+  //   Health: ["Health", "Life", "Weddings", "Dating", "Grownuping", "Relationships"]
+
+  // };
+
 
   useEffect(() => {
     const storedUserData = JSON.parse(localStorage.getItem("user_Data"));
     const userId = storedUserData?.id;
+
+    axiosMain
+      .get("/interests")
+      .then((res) => setAllInterests(res.data))
+      .catch((err) => console.error("Failed to fetch interests:", err));
 
     if (userId) {
       // Fetch user info
@@ -310,8 +323,9 @@ function PersonalInfoFormData() {
             const interest = item.interest?.e_name;
             return `${category}-${interest}`;
           });
-          setSelectedInterests(formattedInterests);
-          setInitialInterests(formattedInterests);
+          const ids = apiInterests.map((item) => item.interest?.id);
+          setSelectedCategories(ids);
+          setInitialInterests(ids);
         })
         .catch((err) => {
           console.error("Failed to fetch interests:", err);
@@ -337,6 +351,24 @@ function PersonalInfoFormData() {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
+
+  const toggleInterest = (category) => {
+    setFeedback("");
+
+    const interestId = category.id;
+    const alreadySelected = selectedCategories.includes(interestId);
+
+    if (alreadySelected) {
+      setSelectedCategories(selectedCategories.filter((id) => id !== interestId));
+    } else {
+      if (selectedCategories.length >= maxSelection) {
+        setFeedback("You can only select up to 5 interests.");
+        return;
+      }
+      setSelectedCategories([...selectedCategories, interestId]);
+    }
+  };
+
 
   // Function to update interests API
   const updateInterests = async (interestIds) => {
@@ -374,7 +406,7 @@ function PersonalInfoFormData() {
       profileData.gender !== userData.gender
     );
     const aboutChanged = about !== initialAbout;
-    const interestsChanged = JSON.stringify(selectedInterests) !== JSON.stringify(initialInterests);
+    const interestsChanged = JSON.stringify(selectedCategories) !== JSON.stringify(initialInterests);
     const rangeChanged = JSON.stringify(distanceRange) !== JSON.stringify(initialDistanceRange);
 
     try {
@@ -391,7 +423,7 @@ function PersonalInfoFormData() {
         setUserData(updatedUserData);
       }
 
-      if (formChanged || aboutChanged) {
+      if (formChanged || aboutChanged || rangeChanged) {
         await axiosMain.put("/personalise", {
           ...form,
           about,
@@ -405,28 +437,18 @@ function PersonalInfoFormData() {
         });
       }
 
-      // Update interests separately if changed
-      if (interestsChanged) {
-        // Convert selected interests to IDs (you may need to modify this based on your data structure)
-        const interestIds = selectedInterests.map(interest => {
-          // Extract the interest name from "category-interest" format
-          const interestName = interest.split('-')[1];
-          // You might need to find the actual ID from your interests data
-          // This is a placeholder - adjust based on your actual data structure
-          return interestName;
-        });
-
-        await updateInterests(interestIds);
+      // ✅ Use selectedCategories directly for interest IDs
+      if (interestsChanged && selectedCategories.length > 0) {
+        await updateInterests(selectedCategories);
       }
 
-      // Update initial states
+      // ✅ Update initial states
       setInitialForm(form);
       setInitialAbout(about);
       setInitialDistanceRange(distanceRange);
-      setInitialInterests(selectedInterests);
+      setInitialInterests(selectedCategories); // ✅ set new initial interest IDs
 
       alert("Profile updated successfully!");
-
     } catch (error) {
       console.error("Update failed:", error);
       alert("Something went wrong during update.");
@@ -439,7 +461,7 @@ function PersonalInfoFormData() {
   };
 
   const handleInterestClick = (category, interest) => {
-    const interestString = `${category}-${interest}`;
+    const interestString = interest.id;
     if (selectedInterests.includes(interestString)) {
       setSelectedInterests(selectedInterests.filter((item) => item !== interestString));
     } else if (selectedInterests.length < 5) {
@@ -635,32 +657,60 @@ function PersonalInfoFormData() {
         <p className="text-sm mb-2">Select up to 5 interests</p>
 
         <div className="space-y-4">
-          {Object.keys(interests).map((category) => (
-            <div key={category}>
-              <p className="text-sm font-semibold">{category}</p>
-              <div className="flex gap-4 flex-wrap">
-                {interests[category].map((interest) => {
-                  const isSelected = selectedInterests.includes(
-                    `${category}-${interest}`
-                  );
-                  return (
-                    <button
-                      key={interest}
-                      type="button"
-                      onClick={() => handleInterestClick(category, interest)}
-                      className={`px-4 py-2 rounded-full text-sm transition-colors ${isSelected
-                        ? "bg-[#00D4FF] text-white"
-                        : "bg-[#FF9999] text-white"
-                        } ${selectedInterests.length >= 5 && !isSelected
-                          ? "cursor-not-allowed opacity-50"
-                          : "cursor-pointer"
-                        }`}
-                      disabled={selectedInterests.length >= 5 && !isSelected}
-                    >
-                      {interest}
-                    </button>
-                  );
-                })}
+          {/* {Object.keys(interests).map((category) => (
+              <div key={category}>
+                <p className="text-sm font-semibold">{category}</p>
+                <div className="flex gap-4 flex-wrap">
+                  {interests[category].map((interest) => {
+                    const isSelected = selectedInterests.includes(
+                      interest?.interest?.id
+                    );
+                    return (
+                      <button
+                        key={interest}
+                        type="button"
+                        onClick={() => handleInterestClick(category, interest)}
+                        className={`px-4 py-2 rounded-full text-sm transition-colors ${isSelected
+                          ? "bg-[#00D4FF] text-white"
+                          : "bg-[#FF9999] text-white"
+                          } ${selectedInterests.length >= 5 && !isSelected
+                            ? "cursor-not-allowed opacity-50"
+                            : "cursor-pointer"
+                          }`}
+                        disabled={selectedInterests.length >= 5 && !isSelected}
+                      >
+                        {interest}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))} */}
+
+          {allInterests.map((interest) => (
+            <div key={interest.id}>
+              <h3 className="text-gray-700 font-semibold flex items-center gap-2 mb-2">
+                {interest.url && (
+                  <img src={interest.url} alt={interest.e_name} className="w-5 h-5 rounded-full" />
+                )}
+                {interest.e_name}
+              </h3>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {interest.category.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => toggleInterest({ ...cat, parent: interest })}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2
+                  ${selectedCategories.includes(cat.id)
+                        ? "bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] text-white"
+                        : "bg-gradient-to-r from-[#FF9999] to-[#FF999980] text-white"}
+                `}
+                  >
+                    {cat.url && <img src={cat.url} alt={cat.e_name} className="w-4 h-4 rounded-full" />}
+                    {cat.e_name}
+                  </button>
+                ))}
               </div>
             </div>
           ))}
@@ -674,6 +724,16 @@ function PersonalInfoFormData() {
       >
         UPDATE
       </button>
+      <div className="pt-2">
+        {feedback && (
+          <p
+            className={`mt-2 text-center text-sm ${feedback.startsWith("✅") ? "text-green-600" : "text-red-600"
+              }`}
+          >
+            {feedback}
+          </p>
+        )}
+      </div>
     </form>
   );
 }

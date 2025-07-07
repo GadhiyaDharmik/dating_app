@@ -19,6 +19,7 @@ import VideoCallScreen from "../pages/dashboard/VideoCallRinging";
 import VideoCallStart from "../pages/dashboard/VideoCallStart";
 import SubscriptionPlans from "../pages/SubScriPtion";
 import Faq from "../pages/Faq";
+import About from "../component/About";
 
 function AppRoutes() {
   return (
@@ -90,6 +91,16 @@ function AppRoutes() {
             <PrivateRoute>
               <DashboardLayout>
                 <PersonalInfoPage />
+              </DashboardLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/about-page"
+          element={
+            <PrivateRoute>
+              <DashboardLayout>
+                <About />
               </DashboardLayout>
             </PrivateRoute>
           }
