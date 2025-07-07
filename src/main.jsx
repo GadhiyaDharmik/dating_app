@@ -4,7 +4,5 @@ import App from "./App.jsx";
 import "./mainApp.css";
 
 createRoot(document.getElementById("root")).render(
-  <React.Fragment>
     <App />
-  </React.Fragment>
 );
