@@ -19,6 +19,7 @@ import usericon from "../assets/userimg.svg";
 import verified from "../assets/verified.svg";
 import { useNavigate } from "react-router-dom";
 import axiosInspector from "../http/axiosMain";
+import { useAboutContext } from "../utils/AboutContext";
 
 const navItems = [
   { label: "Home", icon: <Home size={18} />, navigate: "/dashboard/home" },
@@ -42,6 +43,8 @@ const navItems = [
 ];
 
 const Sidebar = () => {
+  const { setShowAbout, setAboutData } = useAboutContext();
+
   const [active, setActive] = useState(() => {
     const foundIndex = navItems.findIndex(
       (item) => item.navigate === location.pathname
@@ -168,8 +171,11 @@ const Sidebar = () => {
             key={index}
             onClick={() => {
               if (!item.disabled) {
+                setShowAbout(false)
+                setAboutData(null)
                 setActive(index);
                 item.navigate && navigate(item.navigate);
+
               }
             }}
             className={`${active === index ? "bg-black/5 rounded-l-2xl" : "text-white/90"

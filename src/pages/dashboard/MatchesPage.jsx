@@ -7,15 +7,18 @@ import StarRatingBar from "../../component/StarRatingBar.jsx";
 import axiosInspector from "../../http/axiosMain.js";
 import { useNavigate } from "react-router-dom";
 import About from "../../component/About.jsx";
+import { useAboutContext } from "../../utils/AboutContext.jsx";
 // import { axiosMain } from 'axios';
 
 function MatchesPage() {
+  const { ShowAbout, setShowAbout, aboutData, setAboutData } = useAboutContext();
+
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [matchModal, setMatchModal] = useState(null); // stores matched user data
-  const [ShowAbout, setShowAbout] = useState(false);
-  const [aboutData, setAboutData] = useState(null)
+
+
 
   const handleInteract = (targetUserId, action, data) => {
     axiosInspector
@@ -162,7 +165,7 @@ function MatchesPage() {
                         }
                         onInteract={handleInteract}
                         flag={"matches"}
-                        handleShowAboutUser={handleShowAboutUser}
+                        handleShowAboutUser={(id) => handleShowAboutUser(id)}
                       />
                     ))
                   )}
