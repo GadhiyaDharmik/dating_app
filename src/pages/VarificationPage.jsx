@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MainSignUp from "../component/MainSignUp";
-import axiosMain from "../http/axiosMain";  // ← your axios instance
+import axiosMain from "../http/axiosMain"; // ← your axios instance
 import { useNavigate } from "react-router-dom";
 
 function VarificationPage() {
@@ -12,11 +12,11 @@ function VarificationPage() {
 }
 
 function VarificationComponent() {
-  const [otp, setOtp] = useState(["", "", "", "","", ""]);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timer, setTimer] = useState(30);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // Countdown timer logic
   useEffect(() => {
@@ -71,13 +71,11 @@ function VarificationComponent() {
         user_id: userId,
         otp: code,
       });
-      navigate("/signup/confirm-password")
+      navigate("/signup/confirm-password");
       setFeedback("✅ Verification successful!");
       // TODO: navigate on success
     } catch (err) {
-      setFeedback(
-        err.response?.data?.message || "❌ OTP verification failed."
-      );
+      setFeedback(err.response?.data?.message || "❌ OTP verification failed.");
     } finally {
       setLoading(false);
     }
@@ -103,7 +101,7 @@ function VarificationComponent() {
               value={digit}
               onChange={(e) => handleChange(e, index)}
               onKeyDown={(e) => handleKeyDown(e, index)}
-              className="w-12 h-12 text-center border rounded-lg text-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-12 text-center border-b-2 border-gray-400 text-xl bg-transparent focus:outline-none focus:border-blue-500"
               maxLength={1}
             />
           ))}
@@ -141,15 +139,19 @@ function VarificationComponent() {
         </button>
 
         {/* Feedback */}
-        {feedback && (
+        <div className="min-h-[20px] mt-4 text-center text-sm transition-all duration-200">
           <p
-            className={`mt-4 text-center text-sm ${
-              feedback.startsWith("✅") ? "text-green-600" : "text-red-600"
+            className={`transition-opacity duration-200 ${
+              feedback
+                ? feedback.startsWith("✅")
+                  ? "text-green-600 opacity-100"
+                  : "text-red-600 opacity-100"
+                : "opacity-0"
             }`}
           >
-            {feedback}
+            {feedback || "‎"}
           </p>
-        )}
+        </div>
       </div>
     </div>
   );

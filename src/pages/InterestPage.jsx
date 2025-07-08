@@ -247,16 +247,20 @@ function InterestComponent({ formRef }) {
       )} */}
 
       {/* Feedback & Submit */}
-      <div className="pt-2">
-        {feedback && (
-          <p
-            className={`mt-2 text-center text-sm ${feedback.startsWith("✅") ? "text-green-600" : "text-red-600"
-              }`}
-          >
-            {feedback}
-          </p>
-        )}
-      </div>
+   <div className="min-h-[24px] pt-2 transition-all duration-200 ease-in-out">
+  <p
+    className={`text-center text-sm transition-opacity duration-200 ${
+      feedback
+        ? feedback.startsWith("✅")
+          ? "text-green-600 opacity-100"
+          : "text-red-600 opacity-100"
+        : "opacity-0"
+    }`}
+  >
+    {feedback || "‎"} {/* Invisible character to preserve height */}
+  </p>
+</div>
+
     </form>
   );
 }

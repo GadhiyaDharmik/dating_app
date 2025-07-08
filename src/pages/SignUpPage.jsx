@@ -148,14 +148,20 @@ function SignUpComponent() {
         </button>
       </form>
 
-      {feedback && (
-        <p
-          className={`mt-4 text-center text-sm ${feedback.startsWith("✅") ? "text-green-600" : "text-red-600"
-            }`}
-        >
-          {feedback}
-        </p>
-      )}
+    <div className="min-h-[20px] mt-4 text-center text-sm transition-all duration-200">
+  <p
+    className={`transition-opacity duration-200 ${
+      feedback
+        ? feedback.startsWith("✅")
+          ? "text-green-600 opacity-100"
+          : "text-red-600 opacity-100"
+        : "opacity-0"
+    }`}
+  >
+    {feedback || "‎"}
+  </p>
+</div>
+
 
       <div className="text-center text-sm">
         Already have an account?{" "}

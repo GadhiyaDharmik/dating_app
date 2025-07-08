@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import MainSignUp from "../component/MainSignUp";
-import axiosMain from "../http/axiosMain"; // ← your axios instance
+import axiosMain from "../http/axiosMain";
 import { useNavigate } from "react-router-dom";
 
 function ConfirmPasswordPage() {
@@ -22,19 +22,13 @@ function PasswordComponent() {
   const validatePassword = (pwd) => {
     const errors = {};
     if (!pwd.match(/[A-Z]/)) {
-      errors.uppercase = "At least one uppercase letter required.";
+      errors.uppercase = "At least one uppercase letter required";
     }
     if (pwd.length < 8) {
-      errors.length = "Password must be at least 8 characters.";
+      errors.length = "Minimum 8 characters required";
     }
-    // ❌ Remove this block since special characters are optional
-    // if (!pwd.match(/[!@#$%^&*(),.?":{}|<>]/)) {
-    //   errors.special = "At least one special character required.";
-    // }
-
     return errors;
   };
-
 
   const getPasswordStrength = (password) => {
     if (password.length === 0) return "";
@@ -49,15 +43,15 @@ function PasswordComponent() {
     strength === "Strong"
       ? "bg-green-500"
       : strength === "Moderate"
-        ? "bg-yellow-400"
-        : strength === "Weak"
-          ? "bg-red-500"
-          : "bg-gray-300";
+      ? "bg-yellow-400"
+      : strength === "Weak"
+      ? "bg-red-500"
+      : "bg-gray-300";
 
   const handleSubmit = async () => {
     setFeedback("");
-
     const passwordErrors = validatePassword(password);
+
     if (Object.keys(passwordErrors).length > 0) {
       setErrors(passwordErrors);
       return;
@@ -80,9 +74,7 @@ function PasswordComponent() {
       navigate("/login");
     } catch (err) {
       console.error(err);
-      setFeedback(
-        err.response?.data?.message || "❌ Something went wrong."
-      );
+      setFeedback(err.response?.data?.message || "❌ Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -107,22 +99,32 @@ function PasswordComponent() {
             onChange={(e) => {
               setPassword(e.target.value);
               setErrors(validatePassword(e.target.value));
+              setFeedback("");
             }}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          {errors.length && (
-            <p className="text-sm text-red-500 mt-1">{errors.length}</p>
-          )}
-          {errors.uppercase && (
-            <p className="text-sm text-red-500 mt-1">{errors.uppercase}</p>
-          )}
-          {errors.special && (
-            <p className="text-sm text-red-500 mt-1">{errors.special}</p>
-          )}
+
+          {/* Password Validation (No layout shift) */}
+          <div className="min-h-[42px] mt-1 text-sm text-red-500 transition-all duration-200 space-y-1">
+            <p
+              className={`transition-opacity duration-200 ${
+                errors.length ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              {errors.length || "‎"}
+            </p>
+            <p
+              className={`transition-opacity duration-200 ${
+                errors.uppercase ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              {errors.uppercase || "‎"}
+            </p>
+          </div>
         </div>
 
-        {/* Confirm Password */}
-        <div className="mb-6">
+        {/* Confirm Password Field */}
+        <div className="mt-6 mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Confirm Password
           </label>
@@ -130,21 +132,25 @@ function PasswordComponent() {
             type="password"
             placeholder="Re-enter password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              setFeedback("");
+            }}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        {/* Password Strength */}
+        {/* Password Strength Indicator */}
         <div className="flex items-center gap-3 my-2">
           <div className={`h-1 rounded ${strengthColor} w-[50%]`} />
           <span
-            className={`text-sm font-medium ${strength === "Strong"
-              ? "text-green-600"
-              : strength === "Moderate"
+            className={`text-sm font-medium ${
+              strength === "Strong"
+                ? "text-green-600"
+                : strength === "Moderate"
                 ? "text-yellow-600"
                 : "text-red-600"
-              }`}
+            }`}
           >
             {strength}
           </span>
@@ -154,23 +160,27 @@ function PasswordComponent() {
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className={`w-full py-2 text-white font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] hover:opacity-90 transition ${loading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+          className={`w-full py-2 text-white font-semibold rounded-lg bg-gradient-to-r from-[#00D4FF] to-[#00A3E0] hover:opacity-90 transition ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           {loading ? "Setting…" : "Submit"}
         </button>
 
-        {/* Feedback */}
-        {feedback && (
+        {/* Feedback Message (No layout shift) */}
+        <div className="min-h-[24px] mt-4 text-center text-sm transition-all duration-200 ease-in-out">
           <p
-            className={`mt-4 text-center text-sm ${feedback.startsWith("✅")
-              ? "text-green-600"
-              : "text-red-600"
-              }`}
+            className={`transition-opacity duration-200 ${
+              feedback
+                ? feedback.startsWith("✅")
+                  ? "text-green-600 opacity-100"
+                  : "text-red-600 opacity-100"
+                : "opacity-0"
+            }`}
           >
-            {feedback}
+            {feedback || "‎"}
           </p>
-        )}
+        </div>
       </div>
     </div>
   );
